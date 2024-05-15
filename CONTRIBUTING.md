@@ -61,24 +61,24 @@ This project uses an automated versioning and deployment process triggered by pu
 
 ### Versioning
 
-To trigger auto versioning, include one of the following keywords in the **main** branch pull request title:
+To trigger auto versioning, include one of the following keywords in the **last commit message** before merging your pull request:
 - **patch**: for bug fixes and small changes.
 - **minor**: for new features that don't break backward compatibility.
 - **major**: for changes that break backward compatibility.
 
-### Example Pull Request Titles
-- `fix: patch - correct typos in documentation`
-- `feat: minor - add new user authentication feature`
-- `breaking change: major - update API endpoints`
+### Example Commit Messages
+- `fix: correct typos in documentation [patch]`
+- `feat: add new user authentication feature [minor]`
+- `breaking change: update API endpoints [major]`
 
 ### Deployment
 
 Once a pull request with the above keywords is merged into the `main` branch:
-1. The version number is automatically updated based on the keyword in the pull request title.
+1. The version number is automatically updated based on the keyword in the last commit message.
 2. A new GitHub release is created.
 3. The project is deployed to Firebase Hosting.
 
-Ensure your pull request titles follow the conventions above to properly trigger the versioning and deployment workflows.
+Ensure your last commit message follows the conventions above to properly trigger the versioning and deployment workflows.
 
 
 ## References
