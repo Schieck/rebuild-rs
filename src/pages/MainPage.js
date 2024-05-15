@@ -5,11 +5,12 @@ import { db } from "../utils/firebase";
 import HelpMap from "../components/ui/HelpMap";
 import { TypeAnimation } from "react-type-animation";
 import { keyframes } from "@emotion/react";
-import { debounce } from "lodash";
 import CitySelectionModal from "../components/modals/CitySelectionModal";
 import LoginForm from "../components/common/LoginForm";
 import { useAuth } from "../services/AuthProvider";
 import { useNavigate } from "react-router-dom";
+import { haversineDistance } from "../utils/utils";
+import PublicHeader from "../components/common/PublicHeader";
 
 const singlePop = keyframes`
   0% { transform: scale(1); }
@@ -18,8 +19,16 @@ const singlePop = keyframes`
 `;
 
 function MainPage() {
+  const checkUrlForHash = () => {
+    const hash = window.location.hash;
+    return {
+      needHelp: hash.includes("#needHelp"),
+      cityHallAccess: hash.includes("#cityHallAccess"),
+    };
+  };
+
+  const { needHelp, cityHallAccess } = checkUrlForHash();
   const [allRequests, setAllRequests] = useState([]);
-  const [showName, setShowName] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("helpedmap");
   const [loginOpen, setLoginOpen] = useState(false);
@@ -27,6 +36,17 @@ function MainPage() {
   const [mapBounds, setMapBounds] = useState(null);
   const navigate = useNavigate();
   const user = useAuth();
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const { needHelp, cityHallAccess } = checkUrlForHash();
+      setIsModalOpen(needHelp);
+      setLoginOpen(cityHallAccess);
+    };
+
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
 
   const handleCloseModal = () => setIsModalOpen(false);
   const handleLoginCancel = () => setLoginOpen(false);
@@ -36,35 +56,6 @@ function MainPage() {
       navigate(`/${user.role}`);
     }
   };
-
-  function haversineDistance(coords1, coords2) {
-    function toRad(x) {
-      return (x * Math.PI) / 180;
-    }
-
-    var lon1 = coords1.lng;
-    var lat1 = coords1.lat;
-
-    var lon2 = coords2.lng;
-    var lat2 = coords2.lat;
-
-    var R = 6371; // km
-
-    var x1 = lat2 - lat1;
-    var dLat = toRad(x1);
-    var x2 = lon2 - lon1;
-    var dLon = toRad(x2);
-    var a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(toRad(lat1)) *
-        Math.cos(toRad(lat2)) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    var d = R * c;
-
-    return d;
-  }
 
   const fetchCitiesInRange = useCallback(async (center) => {
     try {
@@ -129,16 +120,10 @@ function MainPage() {
   }, [fetchCitiesInRange]);
 
   const handleRequestHelp = () => setIsModalOpen(true);
-  const handleVolunteer = () => setIsModalOpen(true);
+  const handleVolunteer = () => {
+    navigate("todos/public-help");
+  };
   const handleLoginClick = () => setLoginOpen(true);
-
-  const debouncedHandleShowText = debounce(
-    (showText) => setShowName(showText),
-    200
-  );
-
-  const handleMouseEnter = () => debouncedHandleShowText(true);
-  const handleMouseLeave = () => debouncedHandleShowText(false);
 
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
@@ -172,32 +157,7 @@ function MainPage() {
 
   return (
     <Box p={4}>
-      <Grid container justifyContent="space-between" alignItems="center" mb={4}>
-        <Grid item style={{ display: "flex", alignItems: "center" }}>
-          <img
-            src="/icons/logo-nova.png"
-            alt="Logo"
-            style={{ maxWidth: "80px" }}
-          />
-          <Typography
-            variant="h1"
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
-          >
-            {showName ? (
-              <TypeAnimation sequence={["Reconstrói RS"]} repeat={1} />
-            ) : (
-              "RS"
-            )}
-          </Typography>
-        </Grid>
-        <Grid item>
-          <Button variant="outlined" color="warning" onClick={handleLoginClick}>
-            Prefeituras
-          </Button>
-        </Grid>
-      </Grid>
-
+      <PublicHeader cityHallAccess={cityHallAccess} />
       <Grid container spacing={4} alignItems="center">
         <Grid item xs={12} md={5}>
           <Box mb={4}>

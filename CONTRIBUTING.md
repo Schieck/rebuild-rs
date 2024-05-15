@@ -55,6 +55,32 @@ People *love* thorough bug reports.
 
 By contributing, you agree that your contributions will be licensed under its MIT License.
 
+## Auto Versioning and Deployment
+
+This project uses an automated versioning and deployment process triggered by pull requests. Here's how to use it:
+
+### Versioning
+
+To trigger auto versioning, include one of the following keywords in the **last commit message** before merging your pull request:
+- **patch**: for bug fixes and small changes.
+- **minor**: for new features that don't break backward compatibility.
+- **major**: for changes that break backward compatibility.
+
+### Example Commit Messages
+- `fix: correct typos in documentation [patch]`
+- `feat: add new user authentication feature [minor]`
+- `breaking change: update API endpoints [major]`
+
+### Deployment
+
+Once a pull request with the above keywords is merged into the `main` branch:
+1. The version number is automatically updated based on the keyword in the last commit message.
+2. A new GitHub release is created.
+3. The project is deployed to Firebase Hosting.
+
+Ensure your last commit message follows the conventions above to properly trigger the versioning and deployment workflows.
+
+
 ## References
 
 This document was adapted from the open-source contribution guidelines for [Facebook's Draft](https://github.com/facebook/draft-js/blob/main/CONTRIBUTING.md).

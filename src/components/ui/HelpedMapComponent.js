@@ -50,7 +50,7 @@ const HelpedMapComponent = ({ addRequest, user }) => {
   const mapStyles = [
     {
       featureType: "poi",
-      stylers: [{ visibility: "off" }],
+      stylers: [{ visibility: "on" }],
     },
     {
       featureType: "road",
@@ -185,7 +185,10 @@ const HelpedMapComponent = ({ addRequest, user }) => {
           {hoveredMarker.description && (
             <>
               <Typography variant="subtitle2">Descrição:</Typography>
-              <Typography paragraph>{hoveredMarker.description}</Typography>
+              <Typography paragraph>
+                {hoveredMarker.description.substring(0, 16) + "..." ||
+                  "Sem Descrição."}
+              </Typography>
             </>
           )}
 
@@ -193,15 +196,10 @@ const HelpedMapComponent = ({ addRequest, user }) => {
             <>
               <Typography variant="subtitle2">Contato:</Typography>
               <div style={{ display: "flex", alignItems: "center" }}>
-                <Typography paragraph>{hoveredMarker.contact}</Typography>
-                <IconButton
-                  onClick={() => copyToClipboard(hoveredMarker.contact)}
-                  size="small"
-                  title="Copiar"
-                  aria-label="Copiar contato"
-                >
-                  <ContentCopyIcon fontSize="small" />
-                </IconButton>
+                <Typography paragraph>
+                  {hoveredMarker.contact.substring(0, 6) + "..." ||
+                    "Sem contato."}
+                </Typography>
               </div>
             </>
           )}
@@ -303,7 +301,8 @@ const HelpedMapComponent = ({ addRequest, user }) => {
               <div>
                 <input
                   {...getInputProps({
-                    placeholder: "Pesquisar localidade",
+                    placeholder:
+                      "Pesquisar (CEP, Ponto de Referência, Bairro...)",
                     className: "location-search-input",
                     style: {
                       width: "300px",

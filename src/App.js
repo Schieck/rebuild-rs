@@ -27,6 +27,8 @@ import MainPage from "./pages/MainPage";
 import CityReportPage from "./pages/CityReportPage";
 
 import "./styles/App.css";
+import Footer from "./components/common/Footer";
+import AboutUs from "./pages/AboutUs";
 
 const AdminPanelWithRole = withRole(AdminPanel, ["admin", "super"]);
 const TriagePageWithRole = withRole(TriagePage, [
@@ -70,77 +72,82 @@ function App() {
             <CssBaseline />
 
             <Router>
-              <Header />
-              <Routes>
-                {/* Route to select a city */}
-                <Route path="/" element={<MainPage />} />
+              <div style={{ minHeight: "100vh" }}>
+                <Header />
+                <Routes>
+                  <Route path="/about-us" element={<AboutUs />} />
 
-                {/* Route to show markers for a specific city */}
-                <Route path="/:citySlug" element={<HelpedMapContainer />} />
+                  {/* Route to select a city */}
+                  <Route path="/" element={<MainPage />} />
 
-                {/* Route to the Admin Panel */}
-                <Route
-                  path="/:citySlug/admin"
-                  element={<AdminPanelWithRole />}
-                />
+                  {/* Route to show markers for a specific city */}
+                  <Route path="/:citySlug" element={<HelpedMapContainer />} />
 
-                {/* Route to the Admin Panel */}
-                <Route
-                  path="/:citySlug/report"
-                  element={<CityReportPageWithRole />}
-                />
+                  {/* Route to the Admin Panel */}
+                  <Route
+                    path="/:citySlug/admin"
+                    element={<AdminPanelWithRole />}
+                  />
 
-                {/* Route to the Register Cities page */}
-                <Route
-                  path="/:citySlug/super"
-                  element={<RegisterCitiesWithRole />}
-                />
+                  {/* Route to the Admin Panel */}
+                  <Route
+                    path="/:citySlug/report"
+                    element={<CityReportPageWithRole />}
+                  />
 
-                {/* Route to the Triage page */}
-                <Route
-                  path="/:citySlug/triage"
-                  element={<TriagePageWithRole />}
-                />
+                  {/* Route to the Register Cities page */}
+                  <Route
+                    path="/:citySlug/super"
+                    element={<RegisterCitiesWithRole />}
+                  />
 
-                {/* Route to the Helpers page */}
-                <Route
-                  path="/:citySlug/helping"
-                  element={<HelperPageWithRole />}
-                />
+                  {/* Route to the Triage page */}
+                  <Route
+                    path="/:citySlug/triage"
+                    element={<TriagePageWithRole />}
+                  />
 
-                <Route
-                  path="/:citySlug/marker/:markerId"
-                  element={<MarkerDetailsPage />}
-                />
+                  {/* Route to the Helpers page */}
+                  <Route
+                    path="/:citySlug/helping"
+                    element={<HelperPageWithRole />}
+                  />
 
-                {/* Route to the Management page */}
-                <Route
-                  path="/:citySlug/management"
-                  element={<ManagementMapPageWithRole />}
-                />
+                  <Route
+                    path="/:citySlug/marker/:markerId"
+                    element={<MarkerDetailsPage />}
+                  />
 
-                {/* Route to the helped map page */}
-                <Route
-                  path="/:citySlug/helpedMap"
-                  element={<HelpedMapComponent addRequest={true} />}
-                />
+                  {/* Route to the Management page */}
+                  <Route
+                    path="/:citySlug/management"
+                    element={<ManagementMapPageWithRole />}
+                  />
 
-                {/* Route to the helped map page */}
-                <Route
-                  path="/:citySlug/city_hall"
-                  element={<HelpedMapContainerNude addRequest="true" />}
-                />
+                  {/* Route to the helped map page */}
+                  <Route
+                    path="/:citySlug/helpedMap"
+                    element={<HelpedMapComponent addRequest={true} />}
+                  />
 
-                {/* New Route to the Public Help page */}
-                <Route
-                  path="/:citySlug/public-help"
-                  element={<PublicHelpPage />}
-                />
+                  {/* Route to the helped map page */}
+                  <Route
+                    path="/:citySlug/city_hall"
+                    element={<HelpedMapContainerNude addRequest="true" />}
+                  />
 
-                {/* 404 Page */}
-                <Route path="*" element={<NotFoundPage />} />
-              </Routes>
+                  {/* New Route to the Public Help page */}
+                  <Route
+                    path="/:citySlug/public-help"
+                    element={<PublicHelpPage />}
+                  />
+
+                  {/* 404 Page */}
+                  <Route path="*" element={<NotFoundPage />} />
+                </Routes>
+              </div>
             </Router>
+            <Footer />
           </ThemeProvider>
         </LoadScript>
       </GoogleReCaptchaProvider>

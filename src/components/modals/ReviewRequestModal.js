@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -10,7 +10,13 @@ import {
   Grid,
   Box,
 } from "@mui/material";
-import { updateDoc, doc, Timestamp } from "firebase/firestore";
+import {
+  updateDoc,
+  doc,
+  Timestamp,
+  collection,
+  addDoc,
+} from "firebase/firestore";
 import { getFirestore } from "firebase/firestore";
 import { GoogleMap, Marker } from "@react-google-maps/api";
 import { useAuth } from "../../services/AuthProvider";
@@ -26,11 +32,28 @@ import MedicationIcon from "@mui/icons-material/Medication";
 import { showConfirmationAlert, showSuccessAlert } from "../../utils/alerts";
 import CheckroomIcon from "@mui/icons-material/Checkroom";
 import HealthAndSafetyIcon from "@mui/icons-material/HealthAndSafety";
+import BedIcon from "@mui/icons-material/Bed";
+import ChairOutlinedIcon from "@mui/icons-material/ChairOutlined";
 
 const ReviewRequestModal = ({ open, onClose, marker }) => {
   const db = getFirestore();
   const user = useAuth();
   const [reason, setReason] = useState("");
+
+  useEffect(() => {
+    if (user && marker) {
+      const logUserAccess = async () => {
+        const userReadRef = collection(db, "userReads");
+        await addDoc(userReadRef, {
+          userId: user.uid,
+          markerId: marker.id,
+          type: "review_request_modal",
+          timestamp: new Date(),
+        });
+      };
+      logUserAccess();
+    }
+  }, [user, marker, db]);
 
   const mapContainerStyle = {
     width: "100%",
@@ -48,6 +71,8 @@ const ReviewRequestModal = ({ open, onClose, marker }) => {
     clothCleanup: <CleaningServicesIcon color="primary" />,
     medicines: <MedicationIcon color="primary" />,
     cloth: <CheckroomIcon color="primary" />,
+    trousseau: <BedIcon color="primary" />,
+    furniture: <ChairOutlinedIcon color="primary" />,
     civilDefenseCheckup: <HealthAndSafetyIcon color="primary" />,
   };
 
@@ -65,6 +90,8 @@ const ReviewRequestModal = ({ open, onClose, marker }) => {
         clothCleanup: "Limpeza de Roupas",
         medicines: "Medicamento",
         cloth: "Roupas",
+        trousseau: "Enxoval",
+        furniture: "Móveis",
         civilDefenseCheckup: "Visita da Defesa Civil",
       }[key],
       icon: iconsMapping[key],

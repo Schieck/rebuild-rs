@@ -23,6 +23,7 @@ import {
   onSnapshot,
   updateDoc,
   doc,
+  addDoc,
 } from "firebase/firestore";
 import { useAuth } from "../services/AuthProvider";
 import {
@@ -67,6 +68,17 @@ const HelperPage = () => {
     try {
       const requestRef = doc(db, `cities/${user.city}/markers`, id);
       await updateDoc(requestRef, { status: "done" });
+      const logUserUpdate = async () => {
+        const userReadRef = collection(db, "userUpdates");
+        await addDoc(userReadRef, {
+          userId: user.uid,
+          markerId: id,
+          newObject: { status: "done" },
+          type: "helper_page_complete",
+          timestamp: new Date(),
+        });
+      };
+      logUserUpdate();
       showSuccessAlert("Concluído", "O pedido foi marcado como concluído.");
     } catch (error) {
       console.error("Error updating request status:", error);
@@ -83,6 +95,19 @@ const HelperPage = () => {
       `Saiba mais aqui: ${url}`;
 
     if (navigator.share) {
+      if (user && req) {
+        const logUserAccess = async () => {
+          const userReadRef = collection(db, "userReads");
+          await addDoc(userReadRef, {
+            userId: user.uid,
+            markerId: req.id,
+            type: "helper_page_share",
+            timestamp: new Date(),
+          });
+        };
+        logUserAccess();
+      }
+
       navigator.share({
         title: "Pedido de Ajuda",
         text,

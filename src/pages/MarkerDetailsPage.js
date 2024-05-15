@@ -52,6 +52,21 @@ const MarkerDetailsPage = () => {
     fetchMarkerDetails();
   }, [citySlug, markerId, db, navigate]);
 
+  useEffect(() => {
+    if (user && marker) {
+      const logUserAccess = async () => {
+        const userReadRef = collection(db, "userReads");
+        await addDoc(userReadRef, {
+          userId: user.uid,
+          markerId,
+          type: "marker_details_page",
+          timestamp: new Date(),
+        });
+      };
+      logUserAccess();
+    }
+  }, [user, marker, db, markerId]);
+
   const handleLoginCancel = () => setLoginOpen(false);
   const handleLoginSuccess = () => {
     setLoginOpen(false);
@@ -183,7 +198,7 @@ const MarkerDetailsPage = () => {
               borderRadius: "8px",
             }}
           >
-            {marker.contact}
+            {user ? marker.contact : `${marker.contact.slice(0, 4)}****`}
           </Typography>
         </Box>
 
@@ -200,7 +215,9 @@ const MarkerDetailsPage = () => {
               borderRadius: "8px",
             }}
           >
-            {marker.description}
+            {user
+              ? marker.description
+              : `${marker.description.slice(0, 20)}... (Ajude para ver mais)`}
           </Typography>
         </Box>
 

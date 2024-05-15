@@ -87,8 +87,10 @@ const Triage = () => {
           <TableBody>
             {filteredRequests.map((marker) => (
               <TableRow key={marker.id}>
-                <TableCell>{marker.description}</TableCell>
-                <TableCell>{marker.contact}</TableCell>
+                <TableCell>
+                  {marker.description.substring(0, 16) + "**"}
+                </TableCell>
+                <TableCell>{marker.contact.substring(0, 6) + "**"}</TableCell>
                 <TableCell>
                   <IconButton
                     color="primary"

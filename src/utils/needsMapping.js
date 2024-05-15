@@ -8,6 +8,8 @@ import CleaningServicesIcon from "@mui/icons-material/CleaningServices";
 import MedicationIcon from "@mui/icons-material/Medication";
 import CheckroomIcon from "@mui/icons-material/Checkroom";
 import HealthAndSafetyIcon from "@mui/icons-material/HealthAndSafety";
+import BedIcon from "@mui/icons-material/Bed";
+import ChairOutlinedIcon from "@mui/icons-material/ChairOutlined";
 
 export const needsMapping = {
   cleanup: {
@@ -33,6 +35,14 @@ export const needsMapping = {
   cloth: {
     label: "Roupas",
     icon: <CheckroomIcon color="primary" />,
+  },
+  trousseau: {
+    label: "Enxoval",
+    icon: <BedIcon color="primary" />,
+  },
+  furniture: {
+    label: "Móveis",
+    icon: <ChairOutlinedIcon color="primary" />,
   },
   familyShelter: {
     label: "Em Familiares",

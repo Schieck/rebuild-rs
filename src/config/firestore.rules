@@ -32,6 +32,14 @@ service cloud.firestore {
         }
       }
     }
+    
+    match /userReads/{userRead} {
+    	allow create: if request.auth != null
+    }
+
+		match /userUpdates/{userRead} {
+    	allow create: if request.auth != null
+    }
 
     // Global write rule: authenticated users with roles 'admin' or 'super' can write to most collections
     match /{allDocuments=**} {

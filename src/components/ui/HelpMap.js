@@ -189,10 +189,13 @@ function HelpMap({
           >
             <div>
               <h2>{selectedMarker.title}</h2>
-              <p>{selectedMarker.description}</p>
+              <p>
+                {selectedMarker.description?.substring(0, 16) + "..." ||
+                  "Sem Descrição."}
+              </p>
 
               {selectedMarker.isCityHall && (
-                <Tooltip title="Este pedido foi criado e gerido pela prefeitura, recebendo um cuidado extra.">
+                <Tooltip title="Este pedido foi criado e verificado pela prefeitura, recebendo um cuidado extra.">
                   <Chip icon={<SecurityIcon />} color="primary" />
                 </Tooltip>
               )}
