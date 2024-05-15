@@ -1,0 +1,9 @@
+.image-gallery .image-gallery-image {
+    max-width: 600px;
+    max-height: 20rem !important; 
+    margin: auto;
+  }
+
+  .image-gallery-thumbnail-image {
+    max-height: 5rem !important; 
+  }
