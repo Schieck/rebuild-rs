@@ -24,13 +24,14 @@ jobs:
 
       - name: Bump version
         id: bump_version
-        uses: phips28/gh-action-bump-version@v7.x
+        uses: phips28/gh-action-bump-version@master
         with:
           tag-prefix: ""
           commit-message: "Bump version to {{version}}"
           minor-wording: "minor"
           major-wording: "major"
           patch-wording: "patch"
+          check-last-commit-only: "true"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
