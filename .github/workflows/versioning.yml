@@ -1,0 +1,44 @@
+name: Auto Versioning
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - master
+
+jobs:
+  version-update:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: "14"
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Bump version
+        id: bump_version
+        uses: phips28/gh-action-bump-version@v7.x
+        with:
+          tag-prefix: ""
+          commit-message: "Bump version to {{version}}"
+          minor-wording: "minor"
+          major-wording: "major"
+          patch-wording: "patch"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.bump_version.outputs.newTag }}
+          release_name: Release ${{ steps.bump_version.outputs.newTag }}
+          body: 'Changes in this Release\n ${{ github.event.pull_request.title }}'
