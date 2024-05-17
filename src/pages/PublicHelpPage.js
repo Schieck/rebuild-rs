@@ -34,8 +34,6 @@ import {
   onSnapshot,
   where,
   getDocs,
-  doc,
-  getDoc,
   addDoc,
 } from "firebase/firestore";
 import { useNavigate, useParams } from "react-router-dom";
@@ -46,6 +44,8 @@ import { useAuth } from "../services/AuthProvider";
 import LoginForm from "../components/common/LoginForm";
 import HelpCommentModal from "../components/modals/HelpCommentModal";
 import { showSuccessAlert } from "../utils/alerts";
+import { haversineDistance } from "../utils/utils";
+import { debounce } from "lodash";
 
 const PublicHelpPage = () => {
   const [requests, setRequests] = useState([]);
@@ -67,42 +67,87 @@ const PublicHelpPage = () => {
   const navigate = useNavigate();
   const { citySlug } = useParams();
   const theme = useTheme();
-  const [mapCenter, setMapCenter] = useState(null);
+  const [mapCenter, setMapCenter] = useState({ lat: -29.6488, lng: -53.2517 });
+  const [mapBounds, setMapBounds] = useState(null);
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const user = useAuth();
+
   const [loginOpen, setLoginOpen] = useState(false);
   const [showHelpComment, setShowHelpComment] = useState(false);
   const [selectedMarker, setSelectedMarker] = useState(undefined);
 
-  const handleMapChange = (zoom, bounds) => {
-    if (bounds) {
-      fetchCitiesInRange(zoom, bounds);
-    }
-  };
+  useEffect(() => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setMapCenter({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        });
+      },
+      () => {
+        console.error("Geolocation is not supported by this browser.");
+      }
+    );
+  }, []);
 
   const handleCitySelect = (newCitySlug) => {
     navigate(`/${newCitySlug}`);
   };
 
   const fetchCitiesInRange = useCallback(
-    async (zoom, bounds) => {
+    async (center) => {
+      if (!db) return;
+
       try {
-        const newRequests = [];
+        let newRequests = [];
+        if (citySlug === "todos") {
+          const citiesRef = collection(db, "cities");
+          const citiesQuery = query(citiesRef);
+          const citiesSnapshot = await getDocs(citiesQuery);
 
-        const markersRef = collection(db, `cities/${citySlug}/markers`);
-        const markersQuery = query(
-          markersRef,
-          where("status", "in", ["pending", "inProgress", "triage"])
-        );
-        const markersSnapshot = await getDocs(markersQuery);
+          let cityArray = citiesSnapshot.docs.map((cityDoc) => {
+            const city = cityDoc.data();
 
-        markersSnapshot.docs.forEach((doc) => {
-          const marker = { id: doc.id, city: citySlug, ...doc.data() };
+            return {
+              id: cityDoc.id,
+              lat: city.lat,
+              lng: city.lng,
+              distance: haversineDistance(
+                { lat: center.lat, lng: center.lng },
+                { lat: city.lat, lng: city.lng }
+              ),
+            };
+          });
 
-          newRequests.push(marker);
-        });
+          cityArray.sort((a, b) => a.distance - b.distance);
 
-        setRequests(newRequests);
+          await Promise.all(
+            cityArray.map(async (city) => {
+              const markersRef = collection(db, `cities/${city.id}/markers`);
+              const markersQuery = query(
+                markersRef,
+                where("status", "in", ["pending", "inProgress", "triage"])
+              );
+              const markersSnapshot = await getDocs(markersQuery);
+
+              markersSnapshot.docs.forEach((doc) => {
+                const marker = { id: doc.id, city: city.id, ...doc.data() };
+                newRequests.push(marker);
+              });
+            })
+          );
+        } else {
+          const markersRef = collection(db, `cities/${citySlug}/markers`);
+          const markersQuery = query(
+            markersRef,
+            where("status", "in", ["pending", "inProgress", "triage"])
+          );
+          const markersSnapshot = await getDocs(markersQuery);
+          markersSnapshot.docs.forEach((doc) => {
+            newRequests.push({ id: doc.id, city: citySlug, ...doc.data() });
+          });
+        }
+        setRequests(newRequests); // Update state once all data is fetched and processed
       } catch (error) {
         console.error("Failed to fetch cities:", error);
       }
@@ -118,24 +163,21 @@ const PublicHelpPage = () => {
     }
   };
 
+  const handleMapChange = useCallback(
+    (zoom, bounds, center) => {
+      setMapBounds(bounds);
+      fetchCitiesInRange(center);
+    },
+    [fetchCitiesInRange]
+  );
+
   useEffect(() => {
-    const fetchCityDetails = async () => {
-      if (!citySlug) return;
-
-      const cityRef = doc(db, "cities", citySlug);
-      const cityDoc = await getDoc(cityRef);
-
-      if (cityDoc.exists()) {
-        const cityData = cityDoc.data();
-        setMapCenter({
-          lat: cityData.lat,
-          lng: cityData.lng,
-        });
-      }
-    };
-
-    fetchCityDetails();
-  }, [db, citySlug]);
+    if (db) {
+      fetchCitiesInRange(mapCenter);
+    } else {
+      console.log("Database not initialized");
+    }
+  }, [mapCenter, mapBounds]);
 
   useEffect(() => {
     const q = query(
@@ -194,7 +236,7 @@ const PublicHelpPage = () => {
   };
 
   const openDetailsPage = (req) => {
-    navigate(`/${citySlug}/marker/${req.id}`);
+    navigate(`/${req.city}/marker/${req.id}`);
   };
 
   const handleSendHelp = async (help) => {
@@ -237,11 +279,11 @@ const PublicHelpPage = () => {
   const renderCityHallLabel = (isCityHall) => {
     if (isCityHall) {
       return (
-        <Tooltip title="Este pedido foi criado e gerido pela prefeitura, recebendo um cuidado extra.">
+        <Tooltip title="Este pedido foi criado e verificado pela prefeitura, recebendo um cuidado extra.">
           <Chip
             icon={<SecurityIcon />}
             color="primary"
-            label={isMobile ? "Prefeitura" : "Gerido pela Prefeitura"}
+            label={isMobile ? "Prefeitura" : "Verificado"}
           />
         </Tooltip>
       );

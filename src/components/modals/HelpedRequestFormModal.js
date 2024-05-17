@@ -258,6 +258,18 @@ const HelpedRequestFormModal = ({
           style={{ marginBottom: "16px" }}
         />
         <GoogleReCaptcha onVerify={handleCaptchaVerification} />
+        <Typography
+          variant="body2"
+          sx={{
+            width: "100%",
+            padding: "1rem",
+            textAlign: "center",
+          }}
+        >
+          Compartilharemos o seu pedido. Documentos serão preservados apenas à
+          triagem. Ao enviar seu pedido, você aceita os{" "}
+          <a href="/Termos_e_Condicoes.pdf">Termos e Condições</a>.
+        </Typography>
         {loading ? (
           <CircularProgress style={{ margin: "16px" }} />
         ) : (

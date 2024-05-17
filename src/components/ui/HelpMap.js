@@ -192,7 +192,7 @@ function HelpMap({
               <p>{selectedMarker.description}</p>
 
               {selectedMarker.isCityHall && (
-                <Tooltip title="Este pedido foi criado e gerido pela prefeitura, recebendo um cuidado extra.">
+                <Tooltip title="Este pedido foi criado e verificado pela prefeitura, recebendo um cuidado extra.">
                   <Chip icon={<SecurityIcon />} color="primary" />
                 </Tooltip>
               )}

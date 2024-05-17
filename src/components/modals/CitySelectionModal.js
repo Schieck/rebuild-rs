@@ -11,7 +11,9 @@ import {
   Button,
   Box,
   Typography,
+  ListItemIcon,
 } from "@mui/material";
+import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import { useNavigate } from "react-router-dom";
 import { collection, getDocs, addDoc } from "firebase/firestore";
 import { db } from "../../utils/firebase";
@@ -136,6 +138,9 @@ const CitySelectionModal = ({ open, onClose, mode }) => {
                 onClick={() => handleCitySelection(city.id)}
               >
                 <ListItemText primary={city.name} />
+                <ListItemIcon>
+                  <ArrowForwardIosIcon />
+                </ListItemIcon>
               </ListItem>
             ))
           ) : (
