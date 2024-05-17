@@ -22,6 +22,7 @@ import {
   onSnapshot,
   orderBy,
   updateDoc,
+  addDoc,
   doc,
 } from "firebase/firestore";
 import ManagementHelpDetailsModal from "../components/modals/ManagementHelpDetailsModal";
@@ -168,6 +169,17 @@ const ManagementMapPage = ({ citySlug }) => {
 
     const markerRef = doc(db, `cities/${user.city}/markers`, draggableId);
     await updateDoc(markerRef, { status: destination.droppableId });
+    const logUserUpdate = async () => {
+      const userReadRef = collection(db, "userUpdates");
+      await addDoc(userReadRef, {
+        userId: user.uid,
+        markerId: draggableId,
+        newObject: { status: destination.droppableId },
+        type: "helper_page_complete",
+        timestamp: new Date(),
+      });
+    };
+    logUserUpdate();
   };
 
   const getStatusColumns = () => {
@@ -204,7 +216,9 @@ const ManagementMapPage = ({ citySlug }) => {
                         >
                           <ListItemText
                             primary={`#${index + 1}`}
-                            secondary={`${marker.contact} - ${marker.description}`}
+                            secondary={`${
+                              marker.contact.substring(0, 6) + "**"
+                            } - ${marker.description.substring(0, 16) + "**"}`}
                           />
                         </ListItem>
                       )}
@@ -312,7 +326,7 @@ const ManagementMapPage = ({ citySlug }) => {
                       .filter((key) => hoveredMarker.needs[key])
                       .map((key) => needsMapping[key].icon)}
                     <br />
-                    C: {hoveredMarker.contact}
+                    C: {hoveredMarker.contact.substring(0, 6) + "..."}
                   </Typography>
                 </Box>
               </InfoWindow>

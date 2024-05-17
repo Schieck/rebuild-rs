@@ -301,8 +301,8 @@ const PublicHelpPage = () => {
 
   const renderDescription = (description, isCityHall) => {
     const trimmedDescription =
-      description.length > (isMobile ? 25 : 100)
-        ? `${description.substring(0, isMobile ? 25 : 100)}...`
+      description.length > (isMobile ? 15 : 80)
+        ? `${description.substring(0, isMobile ? 15 : 80)}...`
         : description;
 
     return (
@@ -394,7 +394,7 @@ const PublicHelpPage = () => {
                     <Typography>
                       <PhoneIcon fontSize="small" />
                       {" " +
-                        `${req.contact?.substring(0, isMobile ? 9 : 25)}...`}
+                        `${req.contact?.substring(0, isMobile ? 3 : 15)}...`}
                     </Typography>
                     <Chip
                       label={statusMapping[req.status]?.label || req.status}

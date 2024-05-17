@@ -42,10 +42,11 @@ const KanbanBoard = ({ columns, onDragEnd, onMarkerClick }) => {
                         onClick={() => onMarkerClick(marker)}
                       >
                         <Typography variant="subtitle1">
-                          #{marker.index + 1} - {marker.contact}
+                          #{marker.index + 1} -{" "}
+                          {marker.contact.substring(0, 6) + "..."}
                         </Typography>
                         <Typography variant="body2">
-                          {marker.description}
+                          {marker.description.substring(0, 16) + "..."}
                         </Typography>
                       </Box>
                     )}

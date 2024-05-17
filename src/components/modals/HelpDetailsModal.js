@@ -85,11 +85,13 @@ const HelpDetailsModal = ({ open, onClose, marker }) => {
       <DialogContent>
         <Typography variant="h6">Descrição</Typography>
         <Typography paragraph>
-          {marker.description || "Sem descrição."}
+          {marker.description.substring(0, 16) + "..." || "Sem descrição."}
         </Typography>
 
         <Typography variant="h6">Contato</Typography>
-        <Typography paragraph>{marker.contact || "Sem contato."}</Typography>
+        <Typography paragraph>
+          {marker.contact.substring(0, 6) + "..." || "Sem contato."}
+        </Typography>
 
         <Typography variant="h6" style={{ marginTop: "15px" }}>
           Recursos Necessários

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Button,
   Typography,
@@ -14,10 +14,17 @@ import {
   Select,
   MenuItem,
 } from "@mui/material";
-import { updateDoc, doc, Timestamp } from "firebase/firestore";
+import {
+  updateDoc,
+  doc,
+  Timestamp,
+  collection,
+  addDoc,
+} from "firebase/firestore";
 import { statusMapping } from "../../utils/statusMapping";
 import { needsMapping } from "../../utils/needsMapping";
 import { db } from "../../utils/firebase";
+import { useAuth } from "../../services/AuthProvider";
 
 const ManagementHelpDetailsModal = ({ open, onClose, marker, citySlug }) => {
   const [description, setDescription] = useState(marker.description || "");
@@ -29,6 +36,7 @@ const ManagementHelpDetailsModal = ({ open, onClose, marker, citySlug }) => {
     marker.createdAt?.toDate().toISOString().split("T")[0] || ""
   );
   const [isCityHall, setIsCityHall] = useState(marker.isCityHall || false);
+  const user = useAuth();
 
   const handleNeedChange = (needKey) => {
     setNeeds((prev) => ({
@@ -40,6 +48,21 @@ const ManagementHelpDetailsModal = ({ open, onClose, marker, citySlug }) => {
   const handleCityHallChange = (event) => {
     setIsCityHall(event.target.checked);
   };
+
+  useEffect(() => {
+    if (user && marker) {
+      const logUserAccess = async () => {
+        const userReadRef = collection(db, "userReads");
+        await addDoc(userReadRef, {
+          userId: user.uid,
+          markerId: marker.id,
+          type: "marker_details_page",
+          timestamp: new Date(),
+        });
+      };
+      logUserAccess();
+    }
+  }, [user, marker]);
 
   const handleSave = async () => {
     const updatedMarker = {
@@ -57,6 +80,18 @@ const ManagementHelpDetailsModal = ({ open, onClose, marker, citySlug }) => {
 
     try {
       await updateDoc(markerRef, updatedMarker);
+      const logUserUpdate = async () => {
+        const userReadRef = collection(db, "userUpdates");
+        await addDoc(userReadRef, {
+          userId: user.uid,
+          markerId: marker.id,
+          oldObject: marker,
+          newObject: updatedMarker,
+          type: "marker_help_details_modal",
+          timestamp: new Date(),
+        });
+      };
+      logUserUpdate();
       onClose();
     } catch (error) {
       console.error("Error updating marker:", error);

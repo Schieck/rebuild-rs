@@ -304,7 +304,10 @@ const CityReportPage = () => {
                     }}
                   >
                     <ListItemText
-                      primary={`${item.createdAt} - ${item.contact}`}
+                      primary={`${item.createdAt} - ${item.contact.substring(
+                        0,
+                        5
+                      )}`}
                       secondary={item.description}
                       primaryTypographyProps={{ fontWeight: "bold" }}
                       secondaryTypographyProps={{ color: "text.secondary" }}

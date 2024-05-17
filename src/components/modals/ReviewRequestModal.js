@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -10,7 +10,13 @@ import {
   Grid,
   Box,
 } from "@mui/material";
-import { updateDoc, doc, Timestamp } from "firebase/firestore";
+import {
+  updateDoc,
+  doc,
+  Timestamp,
+  collection,
+  addDoc,
+} from "firebase/firestore";
 import { getFirestore } from "firebase/firestore";
 import { GoogleMap, Marker } from "@react-google-maps/api";
 import { useAuth } from "../../services/AuthProvider";
@@ -31,6 +37,21 @@ const ReviewRequestModal = ({ open, onClose, marker }) => {
   const db = getFirestore();
   const user = useAuth();
   const [reason, setReason] = useState("");
+
+  useEffect(() => {
+    if (user && marker) {
+      const logUserAccess = async () => {
+        const userReadRef = collection(db, "userReads");
+        await addDoc(userReadRef, {
+          userId: user.uid,
+          markerId: marker.id,
+          type: "review_request_modal",
+          timestamp: new Date(),
+        });
+      };
+      logUserAccess();
+    }
+  }, [user, marker, db]);
 
   const mapContainerStyle = {
     width: "100%",
