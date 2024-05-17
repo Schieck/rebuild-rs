@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Button,
   TextField,
@@ -6,8 +6,8 @@ import {
   Box,
   IconButton,
   InputAdornment,
-  Autocomplete,
-  FormControl,
+  FormControlLabel,
+  Switch,
 } from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import {
@@ -15,14 +15,8 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
 } from "firebase/auth";
-import {
-  getFirestore,
-  doc,
-  setDoc,
-  collection,
-  getDocs,
-} from "firebase/firestore";
-import { toCityName } from "../../utils/utils";
+import { getFirestore, doc, setDoc } from "firebase/firestore";
+import InputMask from "react-input-mask";
 
 const LoginForm = ({
   onSuccess,
@@ -35,61 +29,36 @@ const LoginForm = ({
   const [confirmPassword, setConfirmPassword] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [name, setName] = useState("");
-  const [cities, setCities] = useState([]);
-  const [selectedCity, setSelectedCity] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isRegistration, setIsRegistration] = useState(
     initialIsRegistration || false
   );
+
   const [error, setError] = useState("");
-  const [loadingLocation, setLoadingLocation] = useState(false);
 
   const auth = getAuth();
   const db = getFirestore();
 
-  useEffect(() => {
-    if (isRegistration) {
-      const fetchCities = async () => {
-        const querySnapshot = await getDocs(collection(db, "cities"));
-        const citiesData = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setCities(citiesData);
-      };
-      fetchCities();
-    }
-  }, [db, isRegistration]);
+  const [usePhone, setUsePhone] = useState(true); // State to track whether to use phone or email
 
-  useEffect(() => {
-    if (navigator.geolocation && isRegistration) {
-      setLoadingLocation(true);
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const lat = position.coords.latitude;
-          const lng = position.coords.longitude;
-          const closestCity = cities?.reduce((prev, curr) => {
-            const prevDistance = Math.sqrt(
-              Math.pow(prev.lat - lat, 2) + Math.pow(prev.lng - lng, 2)
-            );
-            const currDistance = Math.sqrt(
-              Math.pow(curr.lat - lat, 2) + Math.pow(curr.lng - lng, 2)
-            );
-            return prevDistance < currDistance ? prev : curr;
-          });
-          setSelectedCity(closestCity.id);
-          setLoadingLocation(false);
-        },
-        () => {
-          setError("Não foi possível obter a localização.");
-          setLoadingLocation(false);
-        }
-      );
-    }
-  }, []);
+  const handleToggle = (event) => {
+    setUsePhone(!event.target.checked);
+    setEmail("");
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    const userIdentifier = phoneNumber
+      ? `${phoneNumber
+          .replaceAll(" ", "")
+          .replaceAll("(", "")
+          .replaceAll(")", "")
+          .replaceAll("-", "")
+          .trim()}@reconstroirs.me`
+      : email;
+
+    console.log(userIdentifier);
+
     if (isRegistration) {
       if (password !== confirmPassword) {
         setError("As senhas não coincidem.");
@@ -98,19 +67,17 @@ const LoginForm = ({
       try {
         const userCredential = await createUserWithEmailAndPassword(
           auth,
-          email,
+          userIdentifier,
           password
         );
         console.log({
           phoneNumber,
-          city: selectedCity,
           role: "helping",
         });
         await setDoc(doc(db, "users", userCredential.user.uid), {
           name,
           phoneNumber,
-          email,
-          city: selectedCity,
+          userIdentifier,
           role: "helping",
         });
         setError("");
@@ -120,7 +87,7 @@ const LoginForm = ({
       }
     } else {
       try {
-        await signInWithEmailAndPassword(auth, email, password);
+        await signInWithEmailAndPassword(auth, userIdentifier, password);
         setError("");
         onSuccess("Logado com sucesso!");
       } catch (err) {
@@ -129,23 +96,68 @@ const LoginForm = ({
     }
   };
 
+  const renderPhoneNumber = () => (
+    <InputMask
+      mask={"(99) 99999-9999"}
+      value={phoneNumber}
+      onChange={(e) => setPhoneNumber(e.target.value)}
+      disabled={!usePhone}
+    >
+      {() => <TextField label="Telefone" fullWidth required margin="normal" />}
+    </InputMask>
+  );
+
   const togglePasswordVisibility = () => setShowPassword(!showPassword);
   const toggleRegistrationMode = () => setIsRegistration(!isRegistration);
 
   return (
     <Box display="flex" flexDirection="column" alignItems="center" p={4}>
       <Typography variant="h5">
-        {isRegistration ? "Ser Voluntário!" : "Acessar"}
+        {isRegistration ? "Quero Ajudar" : "Acessar"}
       </Typography>
+
+      {isRegistration && (
+        <Typography variant="body1" p={2}>
+          Para ajudar eficazmente nas enchentes do RS, precisamos apenas de
+          alguns dados básicos seus.
+        </Typography>
+      )}
       <form onSubmit={handleLogin} style={{ width: "100%", maxWidth: "400px" }}>
-        <TextField
-          label="E-mail"
-          fullWidth
-          required
-          margin="normal"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+        {isRegistration && (
+          <>
+            <TextField
+              label="Nome"
+              fullWidth
+              required
+              margin="normal"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+            {renderPhoneNumber()}
+          </>
+        )}
+        {!isRegistration && (
+          <>
+            <FormControlLabel
+              control={<Switch checked={!usePhone} onChange={handleToggle} />}
+              label={usePhone ? "Usar E-mail" : "Usar Telefone"}
+            />
+
+            {usePhone && renderPhoneNumber()}
+
+            {!usePhone && (
+              <TextField
+                label={"E-mail"}
+                fullWidth
+                required
+                margin="normal"
+                type={"email"}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            )}
+          </>
+        )}
         <TextField
           label="Senha"
           fullWidth
@@ -175,37 +187,10 @@ const LoginForm = ({
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
             />
-            <TextField
-              label="Telefone"
-              fullWidth
-              required
-              margin="normal"
-              value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
-            />
-            <TextField
-              label="Nome"
-              fullWidth
-              required
-              margin="normal"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-            <FormControl fullWidth margin="normal">
-              <Autocomplete
-                options={cities.map((city) => toCityName(city.name))}
-                value={toCityName(selectedCity)}
-                onChange={(event, newValue) => {
-                  setSelectedCity(
-                    cities.find((city) => toCityName(city.name) === newValue)
-                      ?.id || ""
-                  );
-                }}
-                renderInput={(params) => (
-                  <TextField {...params} label="Cidade" margin="normal" />
-                )}
-              />
-            </FormControl>
+            <Typography variant="body2">
+              Compartilharemos sua ajuda. Ao ajudar, você aceita os{" "}
+              <a href="/Termos_e_Condicoes.pdf">Termos e Condições</a>.
+            </Typography>
           </>
         )}
         {error && (
@@ -226,7 +211,7 @@ const LoginForm = ({
         </Box>
         <Box display="flex" justifyContent="space-between" mt={2}>
           <Button type="submit" variant="contained" color="primary">
-            {isRegistration ? "Registrar" : "Entrar"}
+            {isRegistration ? "Continuar" : "Entrar"}
           </Button>
           <Button variant="outlined" color="secondary" onClick={onCancel}>
             Cancelar

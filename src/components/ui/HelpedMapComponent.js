@@ -50,7 +50,7 @@ const HelpedMapComponent = ({ addRequest, user }) => {
   const mapStyles = [
     {
       featureType: "poi",
-      stylers: [{ visibility: "off" }],
+      stylers: [{ visibility: "on" }],
     },
     {
       featureType: "road",

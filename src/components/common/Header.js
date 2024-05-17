@@ -71,12 +71,10 @@ const Header = () => {
               alt="Logo"
               style={{ height: "40px", marginRight: "16px" }}
             />
-
             <Typography variant="h6" style={{ flexGrow: 1 }}>
               {user.role !== "helping" &&
                 (user.city ? `${toCityName(user.city)} - RS` : "")}
             </Typography>
-
             {user.role !== "helping" && (
               <Button
                 component={Link}
@@ -89,18 +87,6 @@ const Header = () => {
               </Button>
             )}
 
-            {user.role === "helping" && (
-              <Button
-                component={Link}
-                to={`/${user.city}/public-help`}
-                color="primary"
-                variant="outlined"
-                style={{ marginRight: "1rem" }}
-              >
-                Lista de Pedidos
-              </Button>
-            )}
-
             {canAccessTriage && (
               <Button
                 component={Link}
@@ -110,7 +96,6 @@ const Header = () => {
                 Triagem
               </Button>
             )}
-
             {canAccessManagement && (
               <Button
                 color="inherit"
@@ -119,7 +104,6 @@ const Header = () => {
                 Gestão
               </Button>
             )}
-
             {canAccessHelpers && (
               <Button
                 component={Link}
@@ -129,7 +113,6 @@ const Header = () => {
                 Execução
               </Button>
             )}
-
             {canAccessCities && (
               <Button
                 component={Link}
@@ -139,7 +122,6 @@ const Header = () => {
                 Cidades
               </Button>
             )}
-
             {canAccessReport && (
               <Button
                 color="inherit"
@@ -148,11 +130,10 @@ const Header = () => {
                 Relatórios
               </Button>
             )}
-
             {user && (
               <>
                 <IconButton onClick={handleMenuOpen}>
-                  <Avatar>{getInitials(user.displayName || user.email)}</Avatar>
+                  <Avatar>{getInitials(user.name || user.email)}</Avatar>
                 </IconButton>
                 <Menu
                   anchorEl={anchorEl}
