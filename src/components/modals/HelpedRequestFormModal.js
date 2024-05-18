@@ -13,7 +13,6 @@ import {
   ToggleButtonGroup,
   ToggleButton,
   FormControl,
-  FormLabel,
 } from "@mui/material";
 import HomeIcon from "@mui/icons-material/Home";
 import {
@@ -61,6 +60,10 @@ const HelpedRequestFormModal = ({
   const [recaptchaToken, setRecaptchaToken] = useState("");
   const [isCityHall, setIsCityHall] = useState(cityHallPeople || false);
   const [shelterOption, setShelterOption] = useState("none");
+  const [adults, setAdults] = useState(0);
+  const [kids, setKids] = useState(0);
+  const [elderly, setElderly] = useState(0);
+  const [pcd, setPcd] = useState(false);
   const navigate = useNavigate();
 
   const options = Object.entries(needsMapping)
@@ -153,6 +156,10 @@ const HelpedRequestFormModal = ({
       status: isCityHall ? "inProgress" : "triage",
       index: 100000000,
       createdAt: Timestamp.now(),
+      adults,
+      kids,
+      elderly,
+      pcd,
     };
 
     try {
@@ -225,11 +232,45 @@ const HelpedRequestFormModal = ({
           fullWidth
           margin="normal"
         />
-
+        <Box sx={{ display: "flex", gap: "1rem" }}>
+          <TextField
+            label="Adultos"
+            type="number"
+            value={adults}
+            onChange={(e) => setAdults(e.target.value)}
+            fullWidth
+            margin="normal"
+          />
+          <TextField
+            label="Crianças (até 12 anos)"
+            type="number"
+            value={kids}
+            onChange={(e) => setKids(e.target.value)}
+            fullWidth
+            margin="normal"
+          />
+          <TextField
+            label="Idosos"
+            type="number"
+            value={elderly}
+            onChange={(e) => setElderly(e.target.value)}
+            fullWidth
+            margin="normal"
+          />
+        </Box>
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={pcd}
+              onChange={(e) => setPcd(e.target.checked)}
+            />
+          }
+          label="Há pessoa com deficiência física (PCD)"
+          style={{ marginTop: "16px" }}
+        />
         <Typography variant="h6" mt={2}>
           2. Qual a sua situação?
         </Typography>
-
         <FormControl component="fieldset" style={{ marginTop: "16px" }}>
           <Typography variant="body2" mt={2}>
             Estou em:
@@ -260,7 +301,6 @@ const HelpedRequestFormModal = ({
             </ToggleButton>
           </ToggleButtonGroup>
         </FormControl>
-
         <TextField
           label="Conte o que aconteceu aqui."
           value={description}
@@ -292,7 +332,6 @@ const HelpedRequestFormModal = ({
             )}
           />
         </FormGroup>
-
         <Typography variant="subtitle1" style={{ marginTop: "16px" }}>
           Fotos (máximo 5)
         </Typography>
@@ -303,7 +342,6 @@ const HelpedRequestFormModal = ({
           onChange={handleImageChange}
           style={{ marginBottom: "16px" }}
         />
-
         {cityHallPeople && (
           <FormGroup style={{ marginTop: "16px" }}>
             <Typography variant="subtitle1">
