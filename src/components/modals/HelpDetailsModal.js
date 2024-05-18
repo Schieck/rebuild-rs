@@ -20,6 +20,8 @@ import MedicationIcon from "@mui/icons-material/Medication";
 import CleaningServicesIcon from "@mui/icons-material/CleaningServices";
 import CheckroomIcon from "@mui/icons-material/Checkroom";
 import HealthAndSafetyIcon from "@mui/icons-material/HealthAndSafety";
+import BedIcon from "@mui/icons-material/Bed";
+import ChairOutlinedIcon from "@mui/icons-material/ChairOutlined";
 
 const HelpDetailsModal = ({ open, onClose, marker }) => {
   const iconsMapping = {
@@ -32,6 +34,8 @@ const HelpDetailsModal = ({ open, onClose, marker }) => {
     clothCleanup: <CleaningServicesIcon color="primary" />,
     medicines: <MedicationIcon color="primary" />,
     cloth: <CheckroomIcon color="primary" />,
+    trousseau: <BedIcon color="primary" />,
+    furniture: <ChairOutlinedIcon color="primary" />,
     civilDefenseCheckup: <HealthAndSafetyIcon color="primary" />,
   };
 
@@ -40,15 +44,17 @@ const HelpDetailsModal = ({ open, onClose, marker }) => {
     .map((key) => ({
       key,
       label: {
-        cleanup: "Limpeza no Local",
+        cleanup: "Limpeza no local",
         foodWater: "Comida & Água",
         reconstruction: "Reconstrução",
         medicalAid: "Assistência Médica",
         temporaryShelter: "Em Abrigo",
         familyShelter: "Em Familiares",
         clothCleanup: "Limpeza de Roupas",
-        medicines: "Medicamentos",
+        medicines: "Medicamento",
         cloth: "Roupas",
+        trousseau: "Enxoval",
+        furniture: "Móveis",
         civilDefenseCheckup: "Visita da Defesa Civil",
       }[key],
       icon: iconsMapping[key],

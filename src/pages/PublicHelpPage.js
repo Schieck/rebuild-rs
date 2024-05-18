@@ -61,6 +61,8 @@ const PublicHelpPage = () => {
     clothCleanup: false,
     medicines: false,
     cloth: false,
+    trousseau: false,
+    furniture: false,
     civilDefenseCheckup: false,
   });
   const db = getFirestore();

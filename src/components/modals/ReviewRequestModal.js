@@ -32,6 +32,8 @@ import MedicationIcon from "@mui/icons-material/Medication";
 import { showConfirmationAlert, showSuccessAlert } from "../../utils/alerts";
 import CheckroomIcon from "@mui/icons-material/Checkroom";
 import HealthAndSafetyIcon from "@mui/icons-material/HealthAndSafety";
+import BedIcon from "@mui/icons-material/Bed";
+import ChairOutlinedIcon from "@mui/icons-material/ChairOutlined";
 
 const ReviewRequestModal = ({ open, onClose, marker }) => {
   const db = getFirestore();
@@ -69,6 +71,8 @@ const ReviewRequestModal = ({ open, onClose, marker }) => {
     clothCleanup: <CleaningServicesIcon color="primary" />,
     medicines: <MedicationIcon color="primary" />,
     cloth: <CheckroomIcon color="primary" />,
+    trousseau: <BedIcon color="primary" />,
+    furniture: <ChairOutlinedIcon color="primary" />,
     civilDefenseCheckup: <HealthAndSafetyIcon color="primary" />,
   };
 
@@ -86,6 +90,8 @@ const ReviewRequestModal = ({ open, onClose, marker }) => {
         clothCleanup: "Limpeza de Roupas",
         medicines: "Medicamento",
         cloth: "Roupas",
+        trousseau: "Enxoval",
+        furniture: "Móveis",
         civilDefenseCheckup: "Visita da Defesa Civil",
       }[key],
       icon: iconsMapping[key],

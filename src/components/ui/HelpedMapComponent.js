@@ -301,7 +301,8 @@ const HelpedMapComponent = ({ addRequest, user }) => {
               <div>
                 <input
                   {...getInputProps({
-                    placeholder: "Pesquisar localidade",
+                    placeholder:
+                      "Pesquisar (CEP, Ponto de Referência, Bairro...)",
                     className: "location-search-input",
                     style: {
                       width: "300px",

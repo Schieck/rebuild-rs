@@ -9,7 +9,13 @@ import {
   Typography,
   CircularProgress,
   Box,
+  Autocomplete,
+  ToggleButtonGroup,
+  ToggleButton,
+  FormControl,
+  FormLabel,
 } from "@mui/material";
+import HomeIcon from "@mui/icons-material/Home";
 import {
   collection,
   addDoc,
@@ -28,6 +34,7 @@ import {
   showConfirmationAlert,
 } from "../../utils/alerts";
 import { useNavigate } from "react-router-dom";
+import InputMask from "react-input-mask";
 import { needsMapping } from "../../utils/needsMapping";
 
 Modal.setAppElement("#root");
@@ -45,31 +52,31 @@ const HelpedRequestFormModal = ({
     userRole?.includes("city_hall") ||
     userRole?.includes("super");
   const [contact, setContact] = useState("");
+  const [name, setName] = useState("");
   const [document, setDocument] = useState("");
   const [description, setDescription] = useState("");
-  const [needs, setNeeds] = useState({
-    cleanup: false,
-    foodWater: false,
-    reconstruction: false,
-    medicalAid: false,
-    temporaryShelter: false,
-    familyShelter: false,
-    clothCleanup: false,
-    cloth: false,
-  });
+  const [needs, setNeeds] = useState([]);
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [recaptchaToken, setRecaptchaToken] = useState("");
   const [isCityHall, setIsCityHall] = useState(cityHallPeople || false);
+  const [shelterOption, setShelterOption] = useState("none");
   const navigate = useNavigate();
+
+  const options = Object.entries(needsMapping)
+    .filter(([key]) => key !== "familyShelter" && key !== "temporaryShelter")
+    .map(([key, { label, icon }]) => ({
+      key,
+      label,
+      icon,
+    }));
+
+  const handleAutocompleteChange = (event, value) => {
+    setNeeds(value);
+  };
 
   const handleCaptchaVerification = (token) => {
     setRecaptchaToken(token);
-  };
-
-  const handleCheckboxChange = (event) => {
-    const { name, checked } = event.target;
-    setNeeds((prevNeeds) => ({ ...prevNeeds, [name]: checked }));
   };
 
   const handleCityHallChange = (event) => {
@@ -79,6 +86,10 @@ const HelpedRequestFormModal = ({
   const handleImageChange = (event) => {
     const files = Array.from(event.target.files).slice(0, 5); // Limit to 5 images
     setImages(files);
+  };
+
+  const handleShelterChange = (event, newShelterOption) => {
+    setShelterOption(newShelterOption);
   };
 
   const compressImage = async (imageFile) => {
@@ -130,11 +141,15 @@ const HelpedRequestFormModal = ({
     const newMarker = {
       lat: coordinates.lat,
       lng: coordinates.lng,
-      contact,
+      contact: `${name} - ${contact}`,
       document,
       isCityHall,
       description,
-      needs,
+      needs: {
+        ...needs.reduce((acc, need) => ({ ...acc, [need.key]: true }), {}),
+        ...(shelterOption === "familyShelter" && { familyShelter: true }),
+        ...(shelterOption === "temporaryShelter" && { temporaryShelter: true }),
+      },
       status: isCityHall ? "inProgress" : "triage",
       index: 100000000,
       createdAt: Timestamp.now(),
@@ -172,63 +187,122 @@ const HelpedRequestFormModal = ({
   }, 200);
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onRequestClose={onClose}
-      contentLabel="Realizar pedido de ajuda"
-    >
-      <Typography variant="h5">Realizar pedido de ajuda</Typography>
+    <Modal isOpen={isOpen} onRequestClose={onClose}>
+      <Typography variant="h5" textAlign={"center"}>
+        Preciso de Ajuda
+      </Typography>
       <form onSubmit={handleSubmit}>
+        <Typography variant="h6" mt={2}>
+          1. Dados Básicos
+        </Typography>
+        <Box sx={{ display: "flex", columnGap: "1rem" }}>
+          <TextField
+            label="Nome Completo"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            fullWidth
+            margin="normal"
+          />
+          <InputMask
+            mask={"(99) 99999-9999"}
+            value={contact}
+            onChange={(e) => setContact(e.target.value)}
+          >
+            {() => (
+              <TextField
+                label="Telefone"
+                fullWidth
+                margin="normal"
+                type="tel"
+              />
+            )}
+          </InputMask>
+        </Box>
         <TextField
-          label="Contato (Telefone, pessoa, etc.)"
-          value={contact}
-          onChange={(e) => setContact(e.target.value)}
-          fullWidth
-          required
-          margin="normal"
-        />
-        <TextField
-          label="Identificação (Nome, CPF, RG, etc.)"
+          label="Identificação (CPF, RG, CNH, etc.)"
           value={document}
           onChange={(e) => setDocument(e.target.value)}
           fullWidth
-          required
           margin="normal"
         />
+
+        <Typography variant="h6" mt={2}>
+          2. Qual a sua situação?
+        </Typography>
+
+        <FormControl component="fieldset" style={{ marginTop: "16px" }}>
+          <Typography variant="body2" mt={2}>
+            Estou em:
+          </Typography>
+          <ToggleButtonGroup
+            value={shelterOption}
+            exclusive
+            onChange={handleShelterChange}
+            aria-label="shelter"
+            row
+          >
+            <ToggleButton value="none" aria-label="none">
+              {shelterOption === "none" && <HomeIcon color="primary" />}
+              Casa
+            </ToggleButton>
+            <ToggleButton value="familyShelter" aria-label="familyShelter">
+              {shelterOption === "familyShelter" &&
+                needsMapping["familyShelter"].icon}
+              Familiares
+            </ToggleButton>
+            <ToggleButton
+              value="temporaryShelter"
+              aria-label="temporaryShelter"
+            >
+              {shelterOption === "temporaryShelter" &&
+                needsMapping["temporaryShelter"].icon}
+              Abrigo
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </FormControl>
+
         <TextField
-          label="Descrição do Ocorrido"
+          label="Conte o que aconteceu aqui."
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           fullWidth
-          required
           multiline
+          rows={2}
           margin="normal"
         />
         <FormGroup>
-          <Typography variant="subtitle1">Recursos Necessários:</Typography>
-          <div>
-            {Object.entries(needsMapping).map(([key, { label, icon }]) => (
-              <FormControlLabel
-                key={key}
-                control={
-                  <Checkbox
-                    name={key}
-                    checked={Boolean(needs[key])}
-                    onChange={(event) => handleCheckboxChange(event)}
-                  />
-                }
-                label={
-                  <Box display="flex" alignItems="center">
-                    {icon}
-                    <Typography style={{ marginLeft: "8px" }}>
-                      {label}
-                    </Typography>
-                  </Box>
-                }
-              />
-            ))}
-          </div>
+          <Autocomplete
+            mt={2}
+            multiple
+            options={options}
+            getOptionLabel={(option) => option.label}
+            renderOption={(props, option) => (
+              <Box component="li" {...props}>
+                {option.icon}
+                <Typography style={{ marginLeft: "8px" }}>
+                  {option.label}
+                </Typography>
+              </Box>
+            )}
+            value={needs}
+            onChange={handleAutocompleteChange}
+            isOptionEqualToValue={(option, value) => option.key === value.key}
+            renderInput={(params) => (
+              <TextField {...params} label="Recursos Necessários" />
+            )}
+          />
         </FormGroup>
+
+        <Typography variant="subtitle1" style={{ marginTop: "16px" }}>
+          Fotos (máximo 5)
+        </Typography>
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={handleImageChange}
+          style={{ marginBottom: "16px" }}
+        />
 
         {cityHallPeople && (
           <FormGroup style={{ marginTop: "16px" }}>
@@ -247,16 +321,7 @@ const HelpedRequestFormModal = ({
             />
           </FormGroup>
         )}
-        <Typography variant="subtitle1" style={{ marginTop: "16px" }}>
-          Fotos (máximo 5)
-        </Typography>
-        <input
-          type="file"
-          accept="image/*"
-          multiple
-          onChange={handleImageChange}
-          style={{ marginBottom: "16px" }}
-        />
+        <br />
         <GoogleReCaptcha onVerify={handleCaptchaVerification} />
         <Typography
           variant="body2"
