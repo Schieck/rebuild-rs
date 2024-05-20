@@ -24,7 +24,7 @@ import {
   getDoc,
 } from "firebase/firestore";
 import HelpMap from "../components/ui/HelpMap";
-import { Bar, Doughnut } from "react-chartjs-2";
+import { Bar, Doughnut, Line } from "react-chartjs-2";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Chart as ChartJS,
@@ -34,6 +34,8 @@ import {
   LinearScale,
   CategoryScale,
   BarElement,
+  LineElement,
+  PointElement,
 } from "chart.js";
 import { needsMapping } from "../utils/needsMapping";
 import { statusMapping } from "../utils/statusMapping";
@@ -53,7 +55,9 @@ ChartJS.register(
   Legend,
   LinearScale,
   CategoryScale,
-  BarElement
+  BarElement,
+  LineElement,
+  PointElement
 );
 
 const primaryColor = "#FF6384"; // Red shade from logo
@@ -64,29 +68,29 @@ const CityReportPage = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [mapCenter, setMapCenter] = useState(null);
-  const [selectedDate, setSelectedDate] = useState(
-    dayjs().tz("America/Sao_Paulo").format("YYYY-MM-DD")
-  );
+  const [selectedDateRange, setSelectedDateRange] = useState({
+    start: dayjs().tz("America/Sao_Paulo").format("YYYY-MM-DD"),
+    end: dayjs().tz("America/Sao_Paulo").format("YYYY-MM-DD"),
+  });
   const { citySlug } = useParams();
   const db = getFirestore();
 
   const navigate = useNavigate();
 
   const fetchData = async () => {
-    const dayStart = dayjs(selectedDate)
+    const dayStart = dayjs(selectedDateRange.start)
       .tz("America/Sao_Paulo")
       .startOf("day")
       .toDate();
-    const dayEnd = dayjs(selectedDate)
+    const dayEnd = dayjs(selectedDateRange.end)
       .tz("America/Sao_Paulo")
-      .add(1, "day")
-      .startOf("day")
+      .endOf("day")
       .toDate();
 
     const markersQuery = query(
       collection(db, `cities/${citySlug}/markers`),
       where("createdAt", ">=", dayStart),
-      where("createdAt", "<", dayEnd)
+      where("createdAt", "<=", dayEnd)
     );
     const querySnapshot = await getDocs(markersQuery);
     const markersData = querySnapshot.docs.map((doc) => ({
@@ -94,7 +98,7 @@ const CityReportPage = () => {
       ...doc.data(),
       createdAt: dayjs(doc.data().createdAt.toDate())
         .tz("America/Sao_Paulo")
-        .format("HH:mm:ss"),
+        .format("DD/MM/YYYY HH:mm:ss"),
     }));
     setData(markersData);
     setLoading(false);
@@ -113,7 +117,7 @@ const CityReportPage = () => {
 
     fetchCityDetails();
     fetchData();
-  }, [db, citySlug, selectedDate]);
+  }, [db, citySlug, selectedDateRange]);
 
   const computeStats = (markers) => {
     const stats = {
@@ -125,6 +129,12 @@ const CityReportPage = () => {
         low: 0,
       },
       numMarkers: markers.length,
+      totalAdults: 0,
+      totalKids: 0,
+      totalElderly: 0,
+      totalPCD: 0,
+      totalCityHallVerified: 0,
+      timeSeries: {},
     };
 
     markers.forEach((marker) => {
@@ -138,6 +148,15 @@ const CityReportPage = () => {
       stats.urgencyLevels.high += marker.needs.medicalAid ? 1 : 0;
       stats.urgencyLevels.medium += marker.needs.familyShelter ? 1 : 0;
       stats.urgencyLevels.low += marker.needs.foodWater ? 1 : 0;
+
+      stats.totalAdults += marker.adults || 0;
+      stats.totalKids += marker.kids || 0;
+      stats.totalElderly += marker.elderly || 0;
+      stats.totalPCD += marker.pcd ? 1 : 0;
+      stats.totalCityHallVerified += marker.isCityHall ? 1 : 0;
+
+      const date = marker.createdAt.split(" ")[0];
+      stats.timeSeries[date] = (stats.timeSeries[date] || 0) + 1;
     });
     return stats;
   };
@@ -172,6 +191,19 @@ const CityReportPage = () => {
     ],
   };
 
+  const timeSeriesData = {
+    labels: Object.keys(stats.timeSeries),
+    datasets: [
+      {
+        label: "Pedidos por Dia",
+        data: Object.values(stats.timeSeries),
+        fill: false,
+        borderColor: primaryColor,
+        tension: 0.1,
+      },
+    ],
+  };
+
   const downloadPDF = () => {
     setTimeout(() => {
       const input = document.getElementById("report-content");
@@ -186,9 +218,9 @@ const CityReportPage = () => {
           });
           pdf.addImage(imgData, "JPEG", 0, 0, canvas.width, canvas.height);
           pdf.save(
-            `relatorio-reconstroirs-${dayjs(selectedDate).format(
+            `relatorio-reconstroirs-${dayjs(selectedDateRange.start).format(
               "DD-MM-YYYY"
-            )}.pdf`
+            )}_to_${dayjs(selectedDateRange.end).format("DD-MM-YYYY")}.pdf`
           );
         }
       );
@@ -196,7 +228,10 @@ const CityReportPage = () => {
   };
 
   const handleDateChange = (event) => {
-    setSelectedDate(event.target.value);
+    setSelectedDateRange((prev) => ({
+      ...prev,
+      [event.target.name]: event.target.value,
+    }));
   };
 
   return (
@@ -205,9 +240,19 @@ const CityReportPage = () => {
         <Typography variant="h4" gutterBottom color="text.primary">
           Relatório de Pedidos{" "}
           <TextField
-            label="Data"
+            label="Data Inicial"
             type="date"
-            defaultValue={selectedDate}
+            name="start"
+            defaultValue={selectedDateRange.start}
+            onChange={handleDateChange}
+            sx={{ mb: 2, ml: 2 }}
+            InputLabelProps={{ shrink: true }}
+          />
+          <TextField
+            label="Data Final"
+            type="date"
+            name="end"
+            defaultValue={selectedDateRange.end}
             onChange={handleDateChange}
             sx={{ mb: 2, ml: 2 }}
             InputLabelProps={{ shrink: true }}
@@ -274,22 +319,89 @@ const CityReportPage = () => {
                 </Box>
               </Paper>
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12} sm={6} md={4}>
               <Paper
                 sx={{
-                  display: { xs: "none", md: "block" },
                   height: "50vh",
+                  padding: "1rem",
                   backgroundColor: "#f0f0f0",
                 }}
               >
-                <HelpMap
-                  notShowSearch={true}
-                  requests={data}
-                  onMapChange={fetchData}
-                  initialMapZoom={8}
-                  externalMapCenter={mapCenter}
-                />
+                <Typography variant="h6">Pedidos por Dia</Typography>
+                <Box width={"100%"} height={"80%"}>
+                  <Line
+                    data={timeSeriesData}
+                    options={{ responsive: true, maintainAspectRatio: false }}
+                  />
+                </Box>
               </Paper>
+            </Grid>
+            <Grid item xs={12}>
+              <Paper
+                sx={{
+                  height: "auto",
+                  padding: "1rem",
+                  backgroundColor: "#f0f0f0",
+                  marginBottom: "1rem",
+                }}
+              >
+                <Typography variant="h6">
+                  Estatísticas de Acompanhamento
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={6} sm={3}>
+                    <Typography variant="subtitle1">
+                      Total de Pedidos:
+                    </Typography>
+                    <Typography variant="h5">{stats.numMarkers}</Typography>
+                  </Grid>
+                  <Grid item xs={6} sm={3}>
+                    <Typography variant="subtitle1">
+                      Total de Adultos:
+                    </Typography>
+                    <Typography variant="h5">{stats.totalAdults}</Typography>
+                  </Grid>
+                  <Grid item xs={6} sm={3}>
+                    <Typography variant="subtitle1">
+                      Total de Crianças:
+                    </Typography>
+                    <Typography variant="h5">{stats.totalKids}</Typography>
+                  </Grid>
+                  <Grid item xs={6} sm={3}>
+                    <Typography variant="subtitle1">
+                      Total de Idosos:
+                    </Typography>
+                    <Typography variant="h5">{stats.totalElderly}</Typography>
+                  </Grid>
+                  <Grid item xs={6} sm={3}>
+                    <Typography variant="subtitle1">Total de PCD:</Typography>
+                    <Typography variant="h5">{stats.totalPCD}</Typography>
+                  </Grid>
+                  <Grid item xs={6} sm={3}>
+                    <Typography variant="subtitle1">
+                      Verificados pela Prefeitura:
+                    </Typography>
+                    <Typography variant="h5">
+                      {stats.totalCityHallVerified}
+                    </Typography>
+                  </Grid>
+                </Grid>
+              </Paper>
+            </Grid>
+            <Grid
+              item
+              sx={{
+                width: "100%",
+                height: "20rem",
+              }}
+            >
+              <HelpMap
+                notShowSearch={true}
+                requests={data}
+                onMapChange={fetchData}
+                initialMapZoom={8}
+                externalMapCenter={mapCenter}
+              />
             </Grid>
             <Grid item xs={12}>
               <List dense>
@@ -307,7 +419,7 @@ const CityReportPage = () => {
                       primary={`${item.createdAt} - ${item.contact.substring(
                         0,
                         5
-                      )}`}
+                      )}***`}
                       secondary={item.description}
                       primaryTypographyProps={{ fontWeight: "bold" }}
                       secondaryTypographyProps={{ color: "text.secondary" }}

@@ -13,6 +13,9 @@ import {
   Box,
   Select,
   MenuItem,
+  ToggleButtonGroup,
+  ToggleButton,
+  Autocomplete,
 } from "@mui/material";
 import {
   updateDoc,
@@ -25,28 +28,62 @@ import { statusMapping } from "../../utils/statusMapping";
 import { needsMapping } from "../../utils/needsMapping";
 import { db } from "../../utils/firebase";
 import { useAuth } from "../../services/AuthProvider";
+import { GoogleMap, Marker } from "@react-google-maps/api";
+import HomeIcon from "@mui/icons-material/Home";
 
 const ManagementHelpDetailsModal = ({ open, onClose, marker, citySlug }) => {
   const [description, setDescription] = useState(marker.description || "");
   const [contact, setContact] = useState(marker.contact || "");
   const [document, setDocument] = useState(marker.document || "");
   const [status, setStatus] = useState(marker.status || "triage");
-  const [needs, setNeeds] = useState(marker.needs || {});
+
   const [createdAt, setCreatedAt] = useState(
     marker.createdAt?.toDate().toISOString().split("T")[0] || ""
   );
   const [isCityHall, setIsCityHall] = useState(marker.isCityHall || false);
+  const [lat, setLat] = useState(marker.lat || "");
+  const [lng, setLng] = useState(marker.lng || "");
+  const [adults, setAdults] = useState(marker.adults || 0);
+  const [kids, setKids] = useState(marker.kids || 0);
+  const [elderly, setElderly] = useState(marker.elderly || 0);
+  const [pcd, setPcd] = useState(marker.pcd || false);
+  const [shelterOption, setShelterOption] = useState(
+    marker.needs.familyShelter
+      ? "familyShelter"
+      : marker.needs.temporaryShelter
+      ? "temporaryShelter"
+      : "none"
+  );
   const user = useAuth();
 
-  const handleNeedChange = (needKey) => {
-    setNeeds((prev) => ({
-      ...prev,
-      [needKey]: !prev[needKey],
+  const options = Object.entries(needsMapping)
+    .filter(([key]) => key !== "familyShelter" && key !== "temporaryShelter")
+    .map(([key, { label, icon }]) => ({
+      key,
+      label,
+      icon,
     }));
+
+  const initialNeeds = Object.entries(marker.needs || {})
+    .filter(([key, value]) => value && needsMapping[key])
+    .map(([key]) => ({
+      key,
+      label: needsMapping[key].label,
+      icon: needsMapping[key].icon,
+    }));
+
+  const [needs, setNeeds] = useState(initialNeeds);
+
+  const handleNeedChange = (event, value) => {
+    setNeeds(value);
   };
 
   const handleCityHallChange = (event) => {
     setIsCityHall(event.target.checked);
+  };
+
+  const handleShelterChange = (event, newShelterOption) => {
+    setShelterOption(newShelterOption);
   };
 
   useEffect(() => {
@@ -71,9 +108,25 @@ const ManagementHelpDetailsModal = ({ open, onClose, marker, citySlug }) => {
       contact,
       document,
       status,
-      needs,
+      needs: {
+        ...needs.reduce(
+          (acc, need) => ({
+            ...acc,
+            [need.key]: true,
+          }),
+          {}
+        ),
+        ...(shelterOption === "familyShelter" && { familyShelter: true }),
+        ...(shelterOption === "temporaryShelter" && { temporaryShelter: true }),
+      },
       createdAt: Timestamp.fromDate(new Date(createdAt)),
       isCityHall,
+      lat: parseFloat(lat),
+      lng: parseFloat(lng),
+      adults: parseInt(adults),
+      kids: parseInt(kids),
+      elderly: parseInt(elderly),
+      pcd,
     };
 
     const markerRef = doc(db, `cities/${citySlug}/markers`, marker.id);
@@ -102,7 +155,6 @@ const ManagementHelpDetailsModal = ({ open, onClose, marker, citySlug }) => {
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>Gerenciamento de Pedido de Ajuda</DialogTitle>
       <DialogContent>
-        {/* Description */}
         <Typography variant="h6">Descrição</Typography>
         <TextField
           value={description}
@@ -112,7 +164,6 @@ const ManagementHelpDetailsModal = ({ open, onClose, marker, citySlug }) => {
           margin="normal"
         />
 
-        {/* Contact */}
         <Typography variant="h6">Contato</Typography>
         <TextField
           value={contact}
@@ -121,7 +172,6 @@ const ManagementHelpDetailsModal = ({ open, onClose, marker, citySlug }) => {
           margin="normal"
         />
 
-        {/* Document */}
         <Typography variant="h6">Documento</Typography>
         <TextField
           value={document}
@@ -130,18 +180,16 @@ const ManagementHelpDetailsModal = ({ open, onClose, marker, citySlug }) => {
           margin="normal"
         />
 
-        {/* Created At */}
         <Typography variant="h6">Criado em</Typography>
         <TextField
           type="date"
           value={createdAt}
           onChange={(e) => setCreatedAt(e.target.value)}
           fullWidth
-          disabled="disabled"
+          disabled
           margin="normal"
         />
 
-        {/* Status */}
         <Typography variant="h6">Status</Typography>
         <Select
           value={status}
@@ -156,34 +204,127 @@ const ManagementHelpDetailsModal = ({ open, onClose, marker, citySlug }) => {
           ))}
         </Select>
 
-        {/* Needs */}
-        <Typography variant="h6" style={{ marginTop: "15px" }}>
-          Recursos Necessários
-        </Typography>
-        <Grid container spacing={1}>
-          {Object.entries(needsMapping).map(([key, { label, icon }]) => (
-            <Grid item xs={6} key={key}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={Boolean(needs[key])}
-                    onChange={() => handleNeedChange(key)}
-                  />
-                }
-                label={
-                  <Box display="flex" alignItems="center">
-                    {icon}
-                    <Typography style={{ marginLeft: "8px" }}>
-                      {label}
-                    </Typography>
-                  </Box>
-                }
-              />
-            </Grid>
-          ))}
-        </Grid>
+        <Autocomplete
+          sx={{ marginTop: "1rem" }}
+          multiple
+          options={options}
+          getOptionLabel={(option) => option.label}
+          renderOption={(props, option) => (
+            <Box component="li" {...props}>
+              {option.icon}
+              <Typography style={{ marginLeft: "8px" }}>
+                {option.label}
+              </Typography>
+            </Box>
+          )}
+          value={needs}
+          onChange={handleNeedChange}
+          isOptionEqualToValue={(option, value) => option.key === value.key}
+          renderInput={(params) => (
+            <TextField {...params} label="Recursos Necessários" />
+          )}
+        />
 
-        {/* City Hall Checkbox */}
+        <Typography variant="h6" style={{ marginTop: "15px" }}>
+          Local do atingido:
+        </Typography>
+        <Box display="flex" justifyContent="center" margin="normal">
+          <ToggleButtonGroup
+            value={shelterOption}
+            exclusive
+            onChange={handleShelterChange}
+            aria-label="shelter option"
+          >
+            <ToggleButton value="none" aria-label="none">
+              {shelterOption === "none" && <HomeIcon color="primary" />}
+              Casa
+            </ToggleButton>
+            <ToggleButton value="familyShelter" aria-label="familyShelter">
+              {shelterOption === "familyShelter" &&
+                needsMapping["familyShelter"].icon}
+              Familiares
+            </ToggleButton>
+            <ToggleButton
+              value="temporaryShelter"
+              aria-label="temporaryShelter"
+            >
+              {shelterOption === "temporaryShelter" &&
+                needsMapping["temporaryShelter"].icon}
+              Abrigo
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
+
+        <Typography variant="h6" style={{ marginTop: "15px" }}>
+          Detalhes Adicionais
+        </Typography>
+        <Box sx={{ display: "flex", gap: "1rem" }}>
+          <TextField
+            label="Adultos"
+            type="number"
+            value={adults}
+            onChange={(e) => setAdults(e.target.value)}
+            fullWidth
+            margin="normal"
+          />
+          <TextField
+            label="Crianças"
+            type="number"
+            value={kids}
+            onChange={(e) => setKids(e.target.value)}
+            fullWidth
+            margin="normal"
+          />
+          <TextField
+            label="Idosos"
+            type="number"
+            value={elderly}
+            onChange={(e) => setElderly(e.target.value)}
+            fullWidth
+            margin="normal"
+          />
+        </Box>
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={pcd}
+              onChange={(e) => setPcd(e.target.checked)}
+            />
+          }
+          label="Há pessoa com deficiência física (PCD)"
+          style={{ marginTop: "16px" }}
+        />
+
+        <Typography variant="h6" style={{ marginTop: "15px" }}>
+          Localização
+        </Typography>
+        <TextField
+          label="Latitude"
+          value={lat}
+          onChange={(e) => setLat(e.target.value)}
+          fullWidth
+          margin="normal"
+        />
+        <TextField
+          label="Longitude"
+          value={lng}
+          onChange={(e) => setLng(e.target.value)}
+          fullWidth
+          margin="normal"
+        />
+
+        <GoogleMap
+          mapContainerStyle={{ width: "100%", height: "400px" }}
+          center={{ lat: parseFloat(lat), lng: parseFloat(lng) }}
+          zoom={15}
+          onClick={(e) => {
+            setLat(e.latLng.lat());
+            setLng(e.latLng.lng());
+          }}
+        >
+          <Marker position={{ lat: parseFloat(lat), lng: parseFloat(lng) }} />
+        </GoogleMap>
+
         <FormControlLabel
           control={
             <Checkbox checked={isCityHall} onChange={handleCityHallChange} />
