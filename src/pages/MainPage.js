@@ -5,12 +5,12 @@ import { db } from "../utils/firebase";
 import HelpMap from "../components/ui/HelpMap";
 import { TypeAnimation } from "react-type-animation";
 import { keyframes } from "@emotion/react";
-import { debounce } from "lodash";
 import CitySelectionModal from "../components/modals/CitySelectionModal";
 import LoginForm from "../components/common/LoginForm";
 import { useAuth } from "../services/AuthProvider";
 import { useNavigate } from "react-router-dom";
 import { haversineDistance } from "../utils/utils";
+import PublicHeader from "../components/common/PublicHeader";
 
 const singlePop = keyframes`
   0% { transform: scale(1); }
@@ -19,8 +19,16 @@ const singlePop = keyframes`
 `;
 
 function MainPage() {
+  const checkUrlForHash = () => {
+    const hash = window.location.hash;
+    return {
+      needHelp: hash.includes("#needHelp"),
+      cityHallAccess: hash.includes("#cityHallAccess"),
+    };
+  };
+
+  const { needHelp, cityHallAccess } = checkUrlForHash();
   const [allRequests, setAllRequests] = useState([]);
-  const [showName, setShowName] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState("helpedmap");
   const [loginOpen, setLoginOpen] = useState(false);
@@ -28,6 +36,17 @@ function MainPage() {
   const [mapBounds, setMapBounds] = useState(null);
   const navigate = useNavigate();
   const user = useAuth();
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const { needHelp, cityHallAccess } = checkUrlForHash();
+      setIsModalOpen(needHelp);
+      setLoginOpen(cityHallAccess);
+    };
+
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
 
   const handleCloseModal = () => setIsModalOpen(false);
   const handleLoginCancel = () => setLoginOpen(false);
@@ -106,14 +125,6 @@ function MainPage() {
   };
   const handleLoginClick = () => setLoginOpen(true);
 
-  const debouncedHandleShowText = debounce(
-    (showText) => setShowName(showText),
-    200
-  );
-
-  const handleMouseEnter = () => debouncedHandleShowText(true);
-  const handleMouseLeave = () => debouncedHandleShowText(false);
-
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -146,32 +157,7 @@ function MainPage() {
 
   return (
     <Box p={4}>
-      <Grid container justifyContent="space-between" alignItems="center" mb={4}>
-        <Grid item style={{ display: "flex", alignItems: "center" }}>
-          <img
-            src="/icons/logo-nova.png"
-            alt="Logo"
-            style={{ maxWidth: "80px" }}
-          />
-          <Typography
-            variant="h1"
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
-          >
-            {showName ? (
-              <TypeAnimation sequence={["Reconstrói RS"]} repeat={1} />
-            ) : (
-              "RS"
-            )}
-          </Typography>
-        </Grid>
-        <Grid item>
-          <Button variant="outlined" color="warning" onClick={handleLoginClick}>
-            Prefeituras
-          </Button>
-        </Grid>
-      </Grid>
-
+      <PublicHeader cityHallAccess={cityHallAccess} />
       <Grid container spacing={4} alignItems="center">
         <Grid item xs={12} md={5}>
           <Box mb={4}>

@@ -149,9 +149,9 @@ const CityReportPage = () => {
       stats.urgencyLevels.medium += marker.needs.familyShelter ? 1 : 0;
       stats.urgencyLevels.low += marker.needs.foodWater ? 1 : 0;
 
-      stats.totalAdults += marker.adults || 0;
-      stats.totalKids += marker.kids || 0;
-      stats.totalElderly += marker.elderly || 0;
+      stats.totalAdults += Number(marker.adults) || 0;
+      stats.totalKids += Number(marker.kids) || 0;
+      stats.totalElderly += Number(marker.elderly) || 0;
       stats.totalPCD += marker.pcd ? 1 : 0;
       stats.totalCityHallVerified += marker.isCityHall ? 1 : 0;
 

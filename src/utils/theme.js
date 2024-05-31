@@ -6,6 +6,7 @@ const theme = createTheme({
     primary: {
       // Bright green for action buttons and primary elements (support/help)
       main: "#28A745",
+      dark: "#1B6B23",
     },
     secondary: {
       // Warm red for alerts and secondary actions
@@ -19,6 +20,7 @@ const theme = createTheme({
       // Neutral light gray for a pleasant contrast
       default: "#F4F6F8",
       paper: "#FFFFFF",
+      dark: "#F5F5F5",
     },
     text: {
       // Strong black for primary text
