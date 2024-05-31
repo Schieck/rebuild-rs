@@ -1,16 +1,19 @@
 import React, { useState, useCallback } from "react";
-import { Grid, Typography, Button, Dialog } from "@mui/material";
+import { Grid, Typography, Button, Dialog, useMediaQuery } from "@mui/material";
 import { debounce } from "lodash";
 import { TypeAnimation } from "react-type-animation";
 import LoginForm from "./LoginForm";
 import { useAuth } from "../../services/AuthProvider";
 import { useNavigate } from "react-router-dom";
+import { useTheme } from "@emotion/react";
 
 const PublicHeader = ({ cityHallAccess, hideCityHall }) => {
+  const theme = useTheme();
   const [showName, setShowName] = useState(false);
   const [loginOpen, setLoginOpen] = useState(cityHallAccess);
   const user = useAuth();
   const navigate = useNavigate();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const handleLoginClick = () => setLoginOpen(true);
 
@@ -39,18 +42,20 @@ const PublicHeader = ({ cityHallAccess, hideCityHall }) => {
             alt="Logo"
             style={{ maxWidth: "80px" }}
           />
-          <Typography
-            variant="h1"
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
-            sx={{ marginLeft: 2 }}
-          >
-            {showName ? (
-              <TypeAnimation sequence={["Reconstrói RS"]} repeat={1} />
-            ) : (
-              "RS"
-            )}
-          </Typography>
+          {!isMobile && (
+            <Typography
+              variant="h1"
+              onMouseEnter={handleMouseEnter}
+              onMouseLeave={handleMouseLeave}
+              sx={{ marginLeft: 2 }}
+            >
+              {showName ? (
+                <TypeAnimation sequence={["Reconstrói RS"]} repeat={1} />
+              ) : (
+                "RS"
+              )}
+            </Typography>
+          )}
         </Grid>
 
         {!hideCityHall && (
@@ -61,7 +66,7 @@ const PublicHeader = ({ cityHallAccess, hideCityHall }) => {
               color="secondary"
               href="/about-us"
             >
-              Sobre o Projeto
+              Sobre
             </Button>
             <Button
               variant="outlined"
