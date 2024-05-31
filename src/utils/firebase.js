@@ -22,8 +22,6 @@ if (
   console.error("Missing Firebase environment variables");
 }
 
-console.log(firebaseConfig);
-
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const storage = getStorage(app);

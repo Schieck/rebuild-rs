@@ -1,47 +1,54 @@
 import { useState, useEffect, useRef } from "react";
 import ResizeObserver from "resize-observer-polyfill";
 
-const useResponsiveText = ({ maxFontSize, minFontSize }) => {
+const useResponsiveText = ({ text, maxFontSize, minFontSize }) => {
   const containerRef = useRef(null);
-  const [fontSize, setFontSize] = useState(maxFontSize);
+  const [lines, setLines] = useState([]);
 
   useEffect(() => {
-    const adjustFontSize = () => {
+    const adjustText = () => {
       if (!containerRef.current) return;
 
-      const container = containerRef.current;
-      const width = container.offsetWidth;
-      const height = container.offsetHeight;
-      const textElement = container.querySelector(".responsive-text");
+      const containerWidth = containerRef.current.offsetWidth;
+      const words = text.split(" ");
+      let currentLine = "";
+      const newLines = [];
+      const tempDiv = document.createElement("div");
+      tempDiv.style.visibility = "hidden";
+      tempDiv.style.height = "0";
+      tempDiv.style.whiteSpace = "pre";
+      tempDiv.style.fontSize = `${(maxFontSize + minFontSize) / 1.85}px`;
+      tempDiv.style.width = `${containerWidth}px`;
+      document.body.appendChild(tempDiv);
 
-      if (textElement) {
-        let newFontSize = maxFontSize;
-        textElement.style.fontSize = `${newFontSize}px`;
+      words.forEach((word) => {
+        const testLine = currentLine ? `${currentLine} ${word}` : word;
+        tempDiv.textContent = testLine;
 
-        while (
-          newFontSize > minFontSize &&
-          (textElement.scrollWidth > width || textElement.scrollHeight > height)
-        ) {
-          newFontSize -= 1;
-          textElement.style.fontSize = `${newFontSize}px`;
+        if (tempDiv.scrollWidth > containerWidth) {
+          newLines.push(currentLine);
+          currentLine = word;
+        } else {
+          currentLine = testLine;
         }
-        setFontSize(newFontSize);
-      }
+      });
+
+      if (currentLine) newLines.push(currentLine);
+      document.body.removeChild(tempDiv);
+
+      setLines(newLines);
     };
 
-    const resizeObserver = new ResizeObserver(adjustFontSize);
-    if (containerRef.current) resizeObserver.observe(containerRef.current);
-
-    adjustFontSize();
-    window.addEventListener("resize", adjustFontSize);
+    adjustText();
+    const resizeObserver = new ResizeObserver(adjustText);
+    resizeObserver.observe(containerRef.current);
 
     return () => {
-      if (containerRef.current) resizeObserver.unobserve(containerRef.current);
-      window.removeEventListener("resize", adjustFontSize);
+      resizeObserver.disconnect();
     };
-  }, [maxFontSize, minFontSize]);
+  }, [text]);
 
-  return { containerRef, fontSize };
+  return { containerRef, lines };
 };
 
 export default useResponsiveText;

@@ -52,14 +52,36 @@ const PublicHeader = ({ cityHallAccess, hideCityHall }) => {
             )}
           </Typography>
         </Grid>
+
         {!hideCityHall && (
           <Grid item>
+            <Button
+              sx={{ marginRight: "1rem" }}
+              variant="outlined"
+              color="secondary"
+              href="/about-us"
+            >
+              Sobre o Projeto
+            </Button>
             <Button
               variant="outlined"
               color="warning"
               onClick={handleLoginClick}
             >
               Prefeituras
+            </Button>
+          </Grid>
+        )}
+
+        {hideCityHall && (
+          <Grid item>
+            <Button
+              sx={{ marginRight: "1rem" }}
+              variant="outlined"
+              color="primary"
+              href="/"
+            >
+              Página Inicial
             </Button>
           </Grid>
         )}

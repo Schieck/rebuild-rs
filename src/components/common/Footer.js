@@ -149,6 +149,17 @@ const Footer = () => {
             >
               Cadastro de prefeituras
             </Link>
+            <Link
+              variant="body1"
+              fontWeight="200"
+              underline="hover"
+              href="https://github.com/schieck/rebuild-rs"
+              target="_blank"
+              color="inherit"
+              display="block"
+            >
+              Github => Ajudar no Código
+            </Link>
           </Grid>
           <Grid item xs={12} sm={2}>
             <Typography variant="h6" gutterBottom>
@@ -183,8 +194,8 @@ const Footer = () => {
         ></Divider>
         <Grid container width={"100%"}>
           <Typography textAlign={"center"} width={"100%"} variant="body2">
-            Criado com ❤️ para os municípios afetados pelas enchentes em 2024 no
-            Rio Grande do Sul, Brasil.
+            Criado com ❤️: para os municípios afetados pelas enchentes em 2024
+            no Rio Grande do Sul, Brasil.
             <br />© {new Date().getFullYear()} Reconstrói RS. Licensed under the
             MIT License.
           </Typography>

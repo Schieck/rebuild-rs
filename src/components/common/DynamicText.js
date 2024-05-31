@@ -1,59 +1,17 @@
-import React, { useRef, useState, useEffect } from "react";
+import React from "react";
 import { Typography } from "@mui/material";
+import useResponsiveText from "../../utils/useResponsiveText";
 
 const Character = ({ children, fontSize }) => (
   <span style={{ fontSize }}>{children}</span>
 );
 
-const DynamicText = ({ maxFontSize, minFontSize, hiddenRef }) => {
-  const containerRef = useRef(null);
-  const [lines, setLines] = useState([]);
-
-  useEffect(() => {
-    const calculateLines = () => {
-      if (!hiddenRef.current || !containerRef.current) return;
-
-      const text = hiddenRef.current.innerHTML;
-
-      const containerWidth = containerRef.current.offsetWidth;
-      const words = text.split(" ");
-      let currentLine = "";
-      let testLine;
-      const newLines = [];
-
-      const tempDiv = document.createElement("div");
-      tempDiv.style.visibility = "hidden";
-      tempDiv.style.position = "absolute";
-      tempDiv.style.whiteSpace = "pre";
-      tempDiv.style.width = `${containerWidth}px`;
-      tempDiv.style.font = window.getComputedStyle(hiddenRef.current).font;
-      document.body.appendChild(tempDiv);
-
-      words.forEach((word) => {
-        testLine = currentLine ? `${currentLine} ${word}` : word;
-        tempDiv.textContent = testLine;
-
-        if (tempDiv.scrollWidth > containerWidth) {
-          newLines.push(currentLine);
-          currentLine = word;
-        } else {
-          currentLine = testLine;
-        }
-      });
-
-      newLines.push(currentLine);
-      document.body.removeChild(tempDiv);
-
-      setLines(newLines);
-    };
-
-    calculateLines();
-    window.addEventListener("resize", calculateLines);
-
-    return () => {
-      window.removeEventListener("resize", calculateLines);
-    };
-  }, [hiddenRef]);
+const ResponsiveText = ({ text, maxFontSize, minFontSize }) => {
+  const { containerRef, lines } = useResponsiveText({
+    text,
+    maxFontSize,
+    minFontSize,
+  });
 
   const styleLines = (lines) => {
     return lines.map((line, index) => {
@@ -87,4 +45,4 @@ const DynamicText = ({ maxFontSize, minFontSize, hiddenRef }) => {
   );
 };
 
-export default DynamicText;
+export default ResponsiveText;
