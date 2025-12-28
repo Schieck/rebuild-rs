@@ -1,0 +1,23 @@
+{
+  "name": "rebuild-rs-memorial-scripts",
+  "version": "1.0.0",
+  "description": "Memorial encryption scripts for Rebuild RS project",
+  "scripts": {
+    "generate-key": "node generate-key.js",
+    "encrypt": "node encrypt-firebase-data.js",
+    "decrypt": "node decrypt-firebase-data.js"
+  },
+  "keywords": [
+    "memorial",
+    "encryption",
+    "firebase"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@google-cloud/firestore": "^8.0.0",
+    "dotenv": "^16.3.1",
+    "firebase-admin": "^11.11.0"
+  }
+}
+
