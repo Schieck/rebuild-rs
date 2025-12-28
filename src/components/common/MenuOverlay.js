@@ -1,9 +1,7 @@
-import React, { useState, useEffect } from "react";
-import { Button, Typography, Dialog } from "@mui/material";
+import React from "react";
+import { Button, Typography, Box } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { toCityName } from "../../utils/utils";
-import LoginForm from "../common/LoginForm";
-import { useAuth } from "../../services/AuthProvider";
 
 const overlayStyle = {
   position: "fixed",
@@ -21,88 +19,43 @@ const overlayStyle = {
   zIndex: 1000,
 };
 
-const MenuOverlay = ({ onRequestHelp, citySlug }) => {
-  const [loginOpen, setLoginOpen] = useState(false);
+const MenuOverlay = ({ citySlug }) => {
   const navigate = useNavigate();
-  const user = useAuth();
   const cityName = citySlug ? toCityName(citySlug) : "Cidade Desconhecida";
 
-  useEffect(() => {
-    if (user && user.role) {
-      navigate(`/${citySlug}/${user.role}`);
-    }
-  }, [user, citySlug, navigate]);
-
-  const handlePanelClick = () => {
-    if (user && user.role) {
-      navigate(`/${citySlug}/${user.role}`);
-    } else {
-      setLoginOpen(true);
-    }
-  };
-
-  const onPublicHelp = () => {
+  const onViewMemorial = () => {
     navigate(`/${citySlug}/public-help`);
-  };
-
-  const handleLoginSuccess = () => {
-    setLoginOpen(false);
-    console.log("Login", user);
-    if (user && user.role) {
-      navigate(`/${citySlug}/${user.role}`);
-    }
-  };
-
-  const handleLoginCancel = () => {
-    setLoginOpen(false);
   };
 
   return (
     <div style={overlayStyle}>
-      <div>
+      <Box sx={{ maxWidth: "600px" }}>
         <img
           src="/icons/logo-nova.png"
           alt="Logo"
           width="50%"
           style={{ borderRadius: "2rem", maxWidth: "30rem" }}
         />
-        <Typography variant="h3" component="h1" gutterBottom>
+        <Typography variant="h3" component="h1" gutterBottom sx={{ mt: 2 }}>
           {cityName} - RS
+        </Typography>
+        <Typography variant="h6" color="text.secondary" sx={{ mt: 2, mb: 3 }}>
+          Memorial das Enchentes de 2024
+        </Typography>
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+          Visualize os registros históricos do esforço humanitário que ajudou
+          centenas de famílias durante a crise.
         </Typography>
         <Button
           variant="contained"
-          color="error"
-          onClick={onRequestHelp}
-          style={{ marginTop: "2rem" }}
-        >
-          {"Preciso de ajuda!"}
-        </Button>
-        <br />
-        <br />
-        <Button
-          variant="contained"
-          color="info"
-          onClick={onPublicHelp}
-          style={{ marginTop: "2rem" }}
-        >
-          {"Quero Ajudar"}
-        </Button>
-        <br />
-        <Button
-          variant="outlined"
           color="primary"
-          onClick={handlePanelClick}
-          style={{ marginTop: "1rem" }}
+          onClick={onViewMemorial}
+          size="large"
+          sx={{ mt: 2 }}
         >
-          Acessar Painel
+          Ver Memorial
         </Button>
-      </div>
-      <Dialog open={loginOpen} onClose={handleLoginCancel}>
-        <LoginForm
-          onSuccess={handleLoginSuccess}
-          onCancel={handleLoginCancel}
-        />
-      </Dialog>
+      </Box>
     </div>
   );
 };
