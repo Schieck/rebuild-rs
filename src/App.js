@@ -9,53 +9,19 @@ import {
 } from "react-router-dom";
 import theme from "./utils/theme";
 import HelpedMapComponent from "./components/ui/HelpedMapComponent";
-import AdminPanel from "./pages/AdminPanel";
 import { GoogleReCaptchaProvider } from "react-google-recaptcha-v3";
 import MenuOverlay from "./components/common/MenuOverlay";
 import { LoadScript } from "@react-google-maps/api";
 import NotFoundPage from "./pages/NotFoundPage";
 import Header from "./components/common/Header";
-import TriagePage from "./pages/TriagePage";
-import ManagementMapPage from "./pages/ManagementMapPage";
-import HelperPage from "./pages/HelperPage";
 import PublicHelpPage from "./pages/PublicHelpPage";
-import { AuthProvider, useAuth } from "./services/AuthProvider";
-import MarkerDetailsPage from "./pages/MarkerDetailsPage";
-import withRole from "./utils/withRole";
-import RegisterCities from "./pages/RegisterCities";
+import { AuthProvider } from "./services/AuthProvider";
 import MainPage from "./pages/MainPage";
-import CityReportPage from "./pages/CityReportPage";
 
 import "./styles/App.css";
 import Footer from "./components/common/Footer";
 import AboutUs from "./pages/AboutUs";
-
-const AdminPanelWithRole = withRole(AdminPanel, ["admin", "super"]);
-const TriagePageWithRole = withRole(TriagePage, [
-  "admin",
-  "city_hall",
-  "triage",
-  "super",
-]);
-const ManagementMapPageWithRole = withRole(ManagementMapPage, [
-  "management",
-  "city_hall",
-  "admin",
-  "super",
-]);
-const HelperPageWithRole = withRole(HelperPage, [
-  "admin",
-  "super",
-  "city_hall",
-  "management",
-]);
-const CityReportPageWithRole = withRole(CityReportPage, [
-  "management",
-  "city_hall",
-  "admin",
-  "super",
-]);
-const RegisterCitiesWithRole = withRole(RegisterCities, ["super"]);
+import MemorialBanner from "./components/common/MemorialBanner";
 
 function App() {
   return (
@@ -73,6 +39,7 @@ function App() {
 
             <Router>
               <div style={{ minHeight: "100vh" }}>
+                <MemorialBanner />
                 <Header />
                 <Routes>
                   <Route path="/about-us" element={<AboutUs />} />
@@ -83,60 +50,7 @@ function App() {
                   {/* Route to show markers for a specific city */}
                   <Route path="/:citySlug" element={<HelpedMapContainer />} />
 
-                  {/* Route to the Admin Panel */}
-                  <Route
-                    path="/:citySlug/admin"
-                    element={<AdminPanelWithRole />}
-                  />
-
-                  {/* Route to the Admin Panel */}
-                  <Route
-                    path="/:citySlug/report"
-                    element={<CityReportPageWithRole />}
-                  />
-
-                  {/* Route to the Register Cities page */}
-                  <Route
-                    path="/:citySlug/super"
-                    element={<RegisterCitiesWithRole />}
-                  />
-
-                  {/* Route to the Triage page */}
-                  <Route
-                    path="/:citySlug/triage"
-                    element={<TriagePageWithRole />}
-                  />
-
-                  {/* Route to the Helpers page */}
-                  <Route
-                    path="/:citySlug/helping"
-                    element={<HelperPageWithRole />}
-                  />
-
-                  <Route
-                    path="/:citySlug/marker/:markerId"
-                    element={<MarkerDetailsPage />}
-                  />
-
-                  {/* Route to the Management page */}
-                  <Route
-                    path="/:citySlug/management"
-                    element={<ManagementMapPageWithRole />}
-                  />
-
-                  {/* Route to the helped map page */}
-                  <Route
-                    path="/:citySlug/helpedMap"
-                    element={<HelpedMapComponent addRequest={true} />}
-                  />
-
-                  {/* Route to the helped map page */}
-                  <Route
-                    path="/:citySlug/city_hall"
-                    element={<HelpedMapContainerNude addRequest="true" />}
-                  />
-
-                  {/* New Route to the Public Help page */}
+                  {/* Memorial public view */}
                   <Route
                     path="/:citySlug/public-help"
                     element={<PublicHelpPage />}
@@ -159,27 +73,16 @@ function HelpedMapContainer() {
   const { citySlug } = useParams();
   const [overlayVisible, setOverlayVisible] = useState(true);
 
-  const handleRequestHelp = () => {
+  const handleViewMemorial = () => {
     setOverlayVisible(false);
   };
 
   return (
     <>
-      <HelpedMapComponent citySlug={citySlug} addRequest={!overlayVisible} />
+      <HelpedMapComponent citySlug={citySlug} addRequest={false} />
       {overlayVisible && (
-        <MenuOverlay citySlug={citySlug} onRequestHelp={handleRequestHelp} />
+        <MenuOverlay citySlug={citySlug} onViewMemorial={handleViewMemorial} />
       )}
-    </>
-  );
-}
-
-function HelpedMapContainerNude() {
-  const { citySlug } = useParams();
-  const user = useAuth();
-
-  return (
-    <>
-      <HelpedMapComponent citySlug={citySlug} user={user} addRequest={true} />
     </>
   );
 }

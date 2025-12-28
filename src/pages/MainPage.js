@@ -1,263 +1,240 @@
 import React, { useState, useCallback, useEffect } from "react";
-import { Box, Button, Typography, Grid, Divider, Dialog } from "@mui/material";
-import { collection, query, getDocs, where } from "firebase/firestore";
+import { Box, Typography, Grid, Card, CardContent, Paper, Chip } from "@mui/material";
+import { collection, query, getDocs } from "firebase/firestore";
 import { db } from "../utils/firebase";
-import HelpMap from "../components/ui/HelpMap";
-import { TypeAnimation } from "react-type-animation";
-import { keyframes } from "@emotion/react";
-import CitySelectionModal from "../components/modals/CitySelectionModal";
-import LoginForm from "../components/common/LoginForm";
-import { useAuth } from "../services/AuthProvider";
-import { useNavigate } from "react-router-dom";
-import { haversineDistance } from "../utils/utils";
-import PublicHeader from "../components/common/PublicHeader";
-
-const singlePop = keyframes`
-  0% { transform: scale(1); }
-  50% { transform: scale(1.1); }
-  100% { transform: scale(1); }
-`;
+import { needsMapping } from "../utils/needsMapping";
+import { statusMapping } from "../utils/statusMapping";
 
 function MainPage() {
-  const checkUrlForHash = () => {
-    const hash = window.location.hash;
-    return {
-      needHelp: hash.includes("#needHelp"),
-      cityHallAccess: hash.includes("#cityHallAccess"),
-    };
-  };
+  const [stats, setStats] = useState({
+    totalRequests: 0,
+    completed: 0,
+    citiesServed: 0,
+    totalPeople: 0,
+    needsBreakdown: {},
+    statusBreakdown: {},
+    timeline: [],
+  });
 
-  const { needHelp, cityHallAccess } = checkUrlForHash();
-  const [allRequests, setAllRequests] = useState([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState("helpedmap");
-  const [loginOpen, setLoginOpen] = useState(false);
-  const [mapCenter, setMapCenter] = useState({ lat: -29.6488, lng: -53.2517 }); // Default to a fallback location
-  const [mapBounds, setMapBounds] = useState(null);
-  const navigate = useNavigate();
-  const user = useAuth();
 
-  useEffect(() => {
-    const handleHashChange = () => {
-      const { needHelp, cityHallAccess } = checkUrlForHash();
-      setIsModalOpen(needHelp);
-      setLoginOpen(cityHallAccess);
-    };
-
-    window.addEventListener("hashchange", handleHashChange);
-    return () => window.removeEventListener("hashchange", handleHashChange);
-  }, []);
-
-  const handleCloseModal = () => setIsModalOpen(false);
-  const handleLoginCancel = () => setLoginOpen(false);
-  const handleLoginSuccess = () => {
-    setLoginOpen(false);
-    if (user && user.role !== "helping") {
-      navigate(`/${user.role}`);
-    }
-  };
-
-  const fetchCitiesInRange = useCallback(async (center) => {
+  const fetchMemorialData = useCallback(async () => {
     try {
-      console.log("updating cities");
       const citiesRef = collection(db, "cities");
       const citiesQuery = query(citiesRef);
       const citiesSnapshot = await getDocs(citiesQuery);
 
-      let newRequests = [];
-
-      let cityArray = citiesSnapshot.docs.map((cityDoc) => {
-        const city = cityDoc.data();
-
-        return {
-          id: cityDoc.id,
-          lat: city.lat,
-          lng: city.lng,
-          total: 0,
-          distance: haversineDistance(
-            { lat: center.lat, lng: center.lng },
-            { lat: city.lat, lng: city.lng }
-          ),
-        };
-      });
-
-      cityArray.sort((a, b) => a.distance - b.distance);
+      let completedCount = 0;
+      let totalCount = 0;
+      let totalPeople = 0;
+      const needsBreakdown = {};
+      const statusBreakdown = { triage: 0, inProgress: 0, done: 0, cancelled: 0 };
 
       await Promise.all(
-        cityArray.map(async (city) => {
-          const markersRef = collection(db, `cities/${city.id}/markers`);
-          const markersQuery = query(
-            markersRef,
-            where("status", "in", ["pending", "inProgress", "triage"])
-          );
-          const markersSnapshot = await getDocs(markersQuery);
+        citiesSnapshot.docs.map(async (cityDoc) => {
+          const markersRef = collection(db, `cities/${cityDoc.id}/markers`);
+          const markersSnapshot = await getDocs(markersRef);
 
           markersSnapshot.docs.forEach((doc) => {
-            const marker = { id: doc.id, city: city.id, ...doc.data() };
+            const marker = doc.data();
+            totalCount++;
+            
+            // Count completed and people helped (only from completed requests)
+            if (marker.status === "done") {
+              completedCount++;
+              // Only count people from completed requests
+              totalPeople += (marker.adults || 0) + (marker.kids || 0) + (marker.elderly || 0);
+            }
 
-            newRequests.push(marker);
+            // Count status
+            if (statusBreakdown[marker.status] !== undefined) {
+              statusBreakdown[marker.status]++;
+            }
+
+            // Count needs
+            if (marker.needs) {
+              Object.keys(marker.needs).forEach((need) => {
+                if (marker.needs[need]) {
+                  needsBreakdown[need] = (needsBreakdown[need] || 0) + 1;
+                }
+              });
+            }
           });
         })
       );
 
-      setAllRequests(newRequests);
+      setStats({
+        totalRequests: totalCount,
+        completed: completedCount,
+        citiesServed: citiesSnapshot.size,
+        totalPeople,
+        needsBreakdown,
+        statusBreakdown,
+      });
     } catch (error) {
-      console.error("Failed to fetch cities:", error);
+      console.error("Failed to fetch memorial data:", error);
     }
   }, []);
 
   useEffect(() => {
-    const initialCenter = {
-      lat: -29.6488,
-      lng: -53.2517,
-    };
-
     if (db) {
-      fetchCitiesInRange(15, undefined, initialCenter);
-    } else {
-      console.log("Database not initialized");
+      fetchMemorialData();
     }
-  }, [fetchCitiesInRange]);
+  }, [fetchMemorialData]);
 
-  const handleRequestHelp = () => setIsModalOpen(true);
-  const handleVolunteer = () => {
-    navigate("todos/public-help");
-  };
-  const handleLoginClick = () => setLoginOpen(true);
-
-  useEffect(() => {
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setMapCenter({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        });
-      },
-      () => {
-        console.error("Geolocation is not supported by this browser.");
-      }
-    );
-  }, []);
-
-  useEffect(() => {
-    if (db) {
-      fetchCitiesInRange(15, mapBounds, mapCenter);
-    } else {
-      console.log("Database not initialized");
-    }
-  }, [mapCenter, mapBounds]);
-
-  const handleMapChange = useCallback(
-    (zoom, bounds, center) => {
-      setMapBounds(bounds);
-      fetchCitiesInRange(center, bounds);
-    },
-    [fetchCitiesInRange]
-  );
+  const topNeeds = Object.entries(stats.needsBreakdown || {})
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8);
 
   return (
     <Box p={4}>
-      <PublicHeader cityHallAccess={cityHallAccess} />
-      <Grid container spacing={4} alignItems="center">
-        <Grid item xs={12} md={5}>
-          <Box mb={4}>
+      <Grid container spacing={4}>
+        {/* Header */}
+        <Grid item xs={12}>
+          <Box mb={2}>
             <Typography
               variant="h4"
-              style={{ paddingLeft: "5rem" }}
               gutterBottom
+              sx={{ fontWeight: "bold", color: "primary.main" }}
             >
-              Para
-              <br />
-              Quem
-              <br />
-              <TypeAnimation
-                sequence={[
-                  " Precisa de ajuda.",
-                  1000,
-                  " Quer ajudar.",
-                  1000,
-                  " Gerencia.",
-                  1000,
-                ]}
-                style={{ fontWeight: "bold" }}
-                repeat={Infinity}
-              />
+              Memorial Enchentes RS 2024
             </Typography>
-
-            <Divider style={{ margin: "20px 0" }} />
-
-            <Box
-              mt={5}
-              display="flex"
-              flexDirection={{ xs: "column", md: "row" }}
-              gap={2}
-            >
-              <Button
-                variant="contained"
-                color="secondary"
-                size="large"
-                onClick={() => {
-                  setModalMode("helpedmap");
-                  handleRequestHelp();
-                }}
-                sx={{
-                  mx: { xs: 0, md: 2 },
-                  mb: { xs: 2, md: 0 },
-                  animation: `${singlePop} 1s ease-in-out`,
-                  animationIterationCount: 3,
-                  height: "4rem",
-                }}
-              >
-                Preciso de Ajuda
-              </Button>
-              <Button
-                variant="outlined"
-                color="primary"
-                size="large"
-                onClick={() => {
-                  setModalMode("public-help");
-                  handleVolunteer();
-                }}
-                sx={{
-                  mx: { xs: 0, md: 2 },
-                  animation: `${singlePop} 1s ease-in-out`,
-                  animationIterationCount: 3,
-                  animationDelay: "3s",
-                  height: "4rem",
-                }}
-              >
-                Quero Ajudar
-              </Button>
-            </Box>
+            <Typography variant="body1" color="text.secondary">
+              Um registro do esforço humanitário que uniu comunidades durante a
+              crise das enchentes no Rio Grande do Sul.
+            </Typography>
           </Box>
         </Grid>
 
-        <Grid item xs={12} md={7}>
-          <Box height="60vh">
-            <HelpMap
-              requests={allRequests}
-              onMapChange={handleMapChange}
-              onCitySelect={() => {}}
-              externalMapCenter={mapCenter}
-              initialMapZoom={8}
-            />
-          </Box>
+        {/* Main Stats */}
+        <Grid item xs={12} sm={6} md={3}>
+          <Card elevation={3}>
+            <CardContent>
+              <Typography variant="h3" color="primary" gutterBottom>
+                {stats.totalRequests}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Pedidos de Ajuda
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card elevation={3}>
+            <CardContent>
+              <Typography variant="h3" color="success.main" gutterBottom>
+                {stats.completed}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Atendimentos Concluídos
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card elevation={3}>
+            <CardContent>
+              <Typography variant="h3" color="secondary.main" gutterBottom>
+                {stats.citiesServed}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Municípios Atendidos
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card elevation={3}>
+            <CardContent>
+              <Typography variant="h3" color="info.main" gutterBottom>
+                {stats.totalPeople}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Pessoas Ajudadas
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Distribution by Status */}
+        <Grid item xs={12} md={6}>
+          <Paper elevation={3} sx={{ p: 3, height: "100%" }}>
+            <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold" }}>
+              Distribuição por Status
+            </Typography>
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+              {Object.entries(stats.statusBreakdown || {}).map(([status, count]) => (
+                <Grid item xs={6} key={status}>
+                  <Box sx={{ textAlign: "center", p: 2, bgcolor: "grey.50", borderRadius: 2 }}>
+                    {statusMapping[status]?.icon}
+                    <Typography variant="h4" sx={{ mt: 1 }}>
+                      {count}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {statusMapping[status]?.label || status}
+                    </Typography>
+                  </Box>
+                </Grid>
+              ))}
+            </Grid>
+          </Paper>
+        </Grid>
+
+        {/* Top Needs */}
+        <Grid item xs={12} md={6}>
+          <Paper elevation={3} sx={{ p: 3, height: "100%" }}>
+            <Typography variant="h6" gutterBottom sx={{ fontWeight: "bold" }}>
+              Necessidades Mais Solicitadas
+            </Typography>
+            <Box sx={{ mt: 2 }}>
+              {topNeeds.map(([need, count]) => (
+                <Box
+                  key={need}
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    mb: 2,
+                    p: 1.5,
+                    bgcolor: "grey.50",
+                    borderRadius: 1,
+                  }}
+                >
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    {needsMapping[need]?.icon}
+                    <Typography variant="body1">
+                      {needsMapping[need]?.label || need}
+                    </Typography>
+                  </Box>
+                  <Chip label={count} color="primary" size="small" />
+                </Box>
+              ))}
+            </Box>
+          </Paper>
+        </Grid>
+
+        {/* Impact Message */}
+        <Grid item xs={12}>
+          <Paper
+            elevation={3}
+            sx={{
+              p: 4,
+              textAlign: "center",
+              bgcolor: "primary.main",
+              color: "white",
+            }}
+          >
+            <Typography variant="h5" gutterBottom sx={{ fontWeight: "bold" }}>
+              Impacto da Solidariedade
+            </Typography>
+            <Typography variant="body1" sx={{ mt: 2 }}>
+              Durante a crise das enchentes de 2024, nossa comunidade se uniu para
+              ajudar {stats.totalPeople} pessoas em {stats.citiesServed} municípios.
+              Foram {stats.totalRequests} pedidos de ajuda, com {stats.completed} atendimentos
+              concluídos. Este memorial preserva a história deste esforço coletivo.
+            </Typography>
+          </Paper>
         </Grid>
       </Grid>
-
-      <CitySelectionModal
-        mode={modalMode}
-        open={isModalOpen}
-        onClose={handleCloseModal}
-      />
-
-      <Dialog open={loginOpen} onClose={handleLoginCancel}>
-        <LoginForm
-          onSuccess={handleLoginSuccess}
-          onCancel={handleLoginCancel}
-          hideRegister={true}
-        />
-      </Dialog>
     </Box>
   );
 }
